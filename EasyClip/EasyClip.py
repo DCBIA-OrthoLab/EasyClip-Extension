@@ -47,21 +47,19 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         #
         # Interface
         #
-
-        print 'A'
         # Collapsible button -- Scene Description
         self.loadCollapsibleButton = ctk.ctkCollapsibleButton()
         self.loadCollapsibleButton.text = "Scene"
         self.layout.addWidget(self.loadCollapsibleButton)
-        print 'B'
+
         # Layout within the laplace collapsible button
         self.loadFormLayout = qt.QFormLayout(self.loadCollapsibleButton)
-        print 'C'
+
         # GLOBALS:
         self.image = None
         self.logic = EasyClipLogic()
         #--------------------------- List of Models --------------------------#
-        print 'D'
+
         treeView = slicer.qMRMLTreeView()
         treeView.setMRMLScene(slicer.app.mrmlScene())
         treeView.setSceneModelType('Displayable')
@@ -71,7 +69,7 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         header.setResizeMode(0, qt.QHeaderView.Stretch)
         header.setVisible(True)
         self.loadFormLayout.addWidget(treeView)
-        print 'E'
+
 
         #------------------------ Compute Bounding Box ----------------------#
         buttonFrameBox = qt.QFrame(self.parent)
@@ -83,7 +81,7 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.computeBox.connect('clicked()', self.onComputeBox)
 
         #--------------------------- Clipping Part --------------------------#
-        print 'F'
+
         # Collapsible button -- Clipping part
         self.loadCollapsibleButton = ctk.ctkCollapsibleButton()
         self.loadCollapsibleButton.text = "Clipping"
@@ -94,7 +92,7 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
 
         #-------------------------- Buttons --------------------------#
         # CLIPPING BUTTONS
-        print 'G'
+
         self.red_plane_box = qt.QGroupBox("Red Slice Clipping")
         self.red_plane_box.setCheckable(True)
         self.red_plane_box.setChecked(False)
@@ -112,7 +110,6 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.red_plane_box.setLayout(vbox)
         self.loadFormLayout.addWidget(self.red_plane_box)
 
-        print 'H'
         self.yellow_plane_box = qt.QGroupBox("Yellow Slice Clipping")
         self.yellow_plane_box.setCheckable(True)
         self.yellow_plane_box.setChecked(False)
@@ -131,7 +128,6 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.loadFormLayout.addWidget(self.yellow_plane_box)
 
 
-        print 'I'
         self.green_plane_box = qt.QGroupBox("Green Slice Clipping")
         self.green_plane_box.setCheckable(True)
         self.green_plane_box.setChecked(False)
@@ -149,36 +145,34 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.green_plane_box.setLayout(vbox)
         self.loadFormLayout.addWidget(self.green_plane_box)
 
-        print 'J'
         buttonFrame = qt.QFrame(self.parent)
         buttonFrame.setLayout(qt.QHBoxLayout())
         self.loadFormLayout.addWidget(buttonFrame)
 
-        print 'K'
         self.ClippingButton = qt.QPushButton("Clipping")
         buttonFrame.layout().addWidget(self.ClippingButton)
         self.ClippingButton.connect('clicked()', self.ClippingButtonClicked)
-        print'L'
+
         self.UndoButton = qt.QPushButton("Undo")
         buttonFrame.layout().addWidget(self.UndoButton)
         self.UndoButton.connect('clicked()', self.UndoButtonClicked)
 
         #--------------------------- Advanced Part --------------------------#
         #-------------------- Collapsible button -- Clipping part ----------------------#
-        print 'M'
+
         self.loadCollapsibleButton = ctk.ctkCollapsibleButton()
         self.loadCollapsibleButton.text = "Planes"
         self.layout.addWidget(self.loadCollapsibleButton)
-        print 'N'
+
         #-------------------- Layout within the laplace collapsible button ----------------------#
         self.loadFormLayout = qt.QFormLayout(self.loadCollapsibleButton)
-        print 'O'
+
         buttonFrame = qt.QFrame(self.parent)
         buttonFrame.setLayout(qt.QVBoxLayout())
         self.loadFormLayout.addWidget(buttonFrame)
 
         #-------------------- SAVE PLANE BUTTON ----------------------#
-        print 'P'
+
         save_plane = qt.QLabel("Save the planes you create as a txt file.")
         buttonFrame.layout().addWidget(save_plane)
         save = qt.QPushButton("Save plane")
@@ -186,7 +180,7 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         save.connect('clicked(bool)', self.savePlane)
 
         #-------------------- READ PLANE BUTTON ----------------------#
-        print 'Q'
+
         load_plane = qt.QLabel("Load the file with the plane you saved.")
         buttonFrame.layout().addWidget(load_plane)
         read = qt.QPushButton("Load plane")
@@ -841,7 +835,7 @@ class EasyClipTest(ScriptedLoadableModuleTest):
         greenslice.SetWidgetVisible(True)
 
         self.delayDisplay('planes are placed!')
-        print '1'
+
         image = None
 
         logic = EasyClipLogic()
@@ -849,7 +843,7 @@ class EasyClipTest(ScriptedLoadableModuleTest):
         logic.initializePlane()
         logic.getCoord()
         logic.clipping(True, False, True, False, False, False, False, False, False)
-        print '2'
+
 
         print 'DONE'
 
