@@ -17,7 +17,7 @@ class EasyClip(ScriptedLoadableModule):
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
         parent.title = "Easy Clip"
-        parent.categories = ["Easy Clip"]
+        parent.categories = ["Shape Analysis"]
         parent.dependencies = []
         parent.contributors = ["Julia Lopinto, (University Of Michigan)"]
         parent.helpText = """
