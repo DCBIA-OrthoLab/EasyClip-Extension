@@ -38,6 +38,7 @@ class EasyClip(ScriptedLoadableModule):
             """
         
         
+        
         self.parent = parent
 
 class EasyClipWidget(ScriptedLoadableModuleWidget):
