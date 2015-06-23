@@ -13,6 +13,7 @@ After clipping, the models are closed and can be saved as new 3D Models.")
 set(EXTENSION_ICONURL "https://raw.githubusercontent.com/JuliaLopinto/EasyClip-Extension/master/EasyClip.png")
 set(EXTENSION_SCREENSHOTURLS "http://www.slicer.org/slicerWiki/images/1/1b/EasyClipPlanePosition.png")
 
+
 #-----------------------------------------------------------------------------
 # Extension dependencies
 find_package(Slicer REQUIRED)
