@@ -37,8 +37,6 @@ class EasyClip(ScriptedLoadableModule):
             Number R01DE024450.
             """
         
-        
-        
         self.parent = parent
 
 class EasyClipWidget(ScriptedLoadableModuleWidget):
@@ -377,7 +375,6 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
                                    [self.matRed.GetElement(1,0), self.matRed.GetElement(1,1), self.matRed.GetElement(1,2), self.matRed.GetElement(1,3)],
                                    [self.matRed.GetElement(2,0), self.matRed.GetElement(2,1), self.matRed.GetElement(2,2), self.matRed.GetElement(2,3)],
                                    [self.matRed.GetElement(3,0), self.matRed.GetElement(3,1), self.matRed.GetElement(3,2), self.matRed.GetElement(3,3)]])
-
 
 
         # #---------------------- YELLOW SLICE ----------------------#
