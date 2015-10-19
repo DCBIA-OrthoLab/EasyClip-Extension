@@ -19,7 +19,7 @@ class EasyClip(ScriptedLoadableModule):
         parent.title = "Easy Clip"
         parent.categories = ["Shape Analysis"]
         parent.dependencies = []
-        parent.contributors = ["Julia Lopinto, (University Of Michigan)"]
+        parent.contributors = ["Julia Lopinto, (University Of Michigan)", "Jean-Baptiste Vimort, (University Of Michigan)"]
         parent.helpText = """
         This Module is used to clip one or different 3D Models according to a predetermined plane.
         Plane can be saved to be reused for other models.
@@ -42,6 +42,8 @@ class EasyClip(ScriptedLoadableModule):
 class EasyClipWidget(ScriptedLoadableModuleWidget):
     def setup(self):
         ScriptedLoadableModuleWidget.setup(self)
+
+        self.planeControlsDictionary = {}
         # Instantiate and connect widgets
         #
         # Interface
@@ -50,6 +52,8 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.loadCollapsibleButton = ctk.ctkCollapsibleButton()
         self.loadCollapsibleButton.text = "Scene"
         self.layout.addWidget(self.loadCollapsibleButton)
+        self.ignoredNodeNames = ('Red Volume Slice', 'Yellow Volume Slice', 'Green Volume Slice')
+        self.colorSliceVolumes = dict()
 
         # Layout within the laplace collapsible button
         self.loadFormLayout = qt.QFormLayout(self.loadCollapsibleButton)
@@ -69,7 +73,13 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         header.setVisible(True)
         self.loadFormLayout.addWidget(treeView)
 
-
+        self.autoChangeLayout = qt.QCheckBox()
+        self.autoChangeLayout.setCheckState(qt.Qt.Checked)
+        self.autoChangeLayout.setTristate(False)
+        self.autoChangeLayout.setText("Automatically change layout to 3D only")
+        self.loadFormLayout.addWidget(self.autoChangeLayout)
+        # Add vertical spacer
+        self.layout.addStretch(1)
         #------------------------ Compute Bounding Box ----------------------#
         buttonFrameBox = qt.QFrame(self.parent)
         buttonFrameBox.setLayout(qt.QHBoxLayout())
@@ -192,15 +202,51 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         #-------------------- onCloseScene ----------------------#
         slicer.mrmlScene.AddObserver(slicer.mrmlScene.EndCloseEvent, self.onCloseScene)
 
+    def enter(self):
+        if self.autoChangeLayout.isChecked():
+            lm = slicer.app.layoutManager()
+            self.currentLayout = lm.layout
+            lm.setLayout(4)  # 3D-View
+        # Show manual planes
+        for planeControls in self.planeControlsDictionary.values():
+            if planeControls.PlaneIsDefined():
+                planeControls.logic.planeLandmarks(planeControls.landmark1ComboBox.currentIndex, planeControls.landmark2ComboBox.currentIndex,
+                                          planeControls.landmark3ComboBox.currentIndex, planeControls.slider.value, planeControls.slideOpacity.value)
+        self.onComputeBox()
+
+    def exit(self):
+        # Remove hidden nodes that are created just for Angle Planes
+        for x in self.colorSliceVolumes.values():
+            node = slicer.mrmlScene.GetNodeByID(x)
+            slicer.mrmlScene.RemoveNode(node)
+            node.SetHideFromEditors(False)
+        self.colorSliceVolumes = dict()
+        # Hide manual planes
+        for planeControls in self.planeControlsDictionary.values():
+            if planeControls.PlaneIsDefined():
+                planeControls.logic.planeLandmarks(planeControls.landmark1ComboBox.currentIndex, planeControls.landmark2ComboBox.currentIndex,
+                                          planeControls.landmark3ComboBox.currentIndex, planeControls.slider.value, 0)
+        # Hide planes
+        for x in self.logic.ColorNodeCorrespondence.keys():
+            compNode = slicer.util.getNode('vtkMRMLSliceCompositeNode' + x)
+            compNode.SetLinkedControl(False)
+            slice = slicer.mrmlScene.GetNodeByID(self.logic.ColorNodeCorrespondence[x])
+            slice.SetWidgetVisible(False)
+            slice.SetSliceVisible(False)
+        # Reset layout
+        if self.autoChangeLayout.isChecked():
+            lm = slicer.app.layoutManager()
+            if lm.layout == 4:  # the user has not manually changed the layout
+                lm.setLayout(self.currentLayout)
 
     def redPlaneCheckBoxClicked(self):
-        self.logic.onCheckBoxClicked('red', self.red_plane_box, self.radio_red_Neg)
+        self.logic.onCheckBoxClicked('Red', self.red_plane_box, self.radio_red_Neg)
 
     def yellowPlaneCheckBoxClicked(self):
-        self.logic.onCheckBoxClicked('yellow', self.yellow_plane_box, self.radio_yellow_Neg)
+        self.logic.onCheckBoxClicked('Yellow', self.yellow_plane_box, self.radio_yellow_Neg)
 
     def greenPlaneCheckBoxClicked(self):
-        self.logic.onCheckBoxClicked('green', self.green_plane_box,  self.radio_green_Neg)
+        self.logic.onCheckBoxClicked('Green', self.green_plane_box,  self.radio_green_Neg)
 
     def savePlane(self):
         self.logic.getCoord()
@@ -221,7 +267,103 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
 
     def onComputeBox(self):
         #--------------------------- Box around the model --------------------------#
-        self.image = self.logic.computeBoxFunction(self.image)
+        positionOfVisibleNodes = self.getPositionOfModelNodes(True)
+        if len(positionOfVisibleNodes) == 0:
+            return
+        maxValue = slicer.sys.float_info.max
+        bound = [maxValue, -maxValue, maxValue, -maxValue, maxValue, -maxValue]
+        for i in positionOfVisibleNodes:
+            node = slicer.mrmlScene.GetNthNodeByClass(i, "vtkMRMLModelNode")
+            polydata = node.GetPolyData()
+            if polydata is None or not hasattr(polydata, "GetBounds"):
+                continue
+            tempbound = polydata.GetBounds()
+            bound[0] = min(bound[0], tempbound[0])
+            bound[2] = min(bound[2], tempbound[2])
+            bound[4] = min(bound[4], tempbound[4])
+
+            bound[1] = max(bound[1], tempbound[1])
+            bound[3] = max(bound[3], tempbound[3])
+            bound[5] = max(bound[5], tempbound[5])
+        # --------------------------- Box around the model --------------------------#
+
+        dim = []
+        origin = []
+        for x in range(0, 3):
+            dim.append(bound[x * 2 + 1] - bound[x * 2])
+            origin.append(bound[x * 2] + dim[x] / 2)
+            dim[x] *= 1.1
+        print dim
+        print origin
+
+        dictColors = {'Red': 32, 'Yellow': 15, 'Green': 1}
+        for x in dictColors.keys():
+            sampleVolumeNode = self.CreateNewNode(x, dictColors[x], dim, origin)
+            compNode = slicer.util.getNode('vtkMRMLSliceCompositeNode' + x)
+            compNode.SetLinkedControl(False)
+            compNode.SetBackgroundVolumeID(sampleVolumeNode.GetID())
+            print "set background" + x
+        lm = slicer.app.layoutManager()
+        #Reset and fit 2D-views
+        lm.resetSliceViews()
+        for x in dictColors.keys():
+            logic = lm.sliceWidget(x)
+            node = logic.mrmlSliceNode()
+            node.SetSliceResolutionMode(node.SliceResolutionMatch2DView)
+            logic.fitSliceToBackground()
+        #Reset pink box around models
+        for i in range(0, lm.threeDViewCount):
+            threeDView = lm.threeDWidget(i).threeDView()
+            threeDView.resetFocalPoint()
+            #Reset camera in 3D view to center the models and position the camera so that all actors can be seen
+            threeDView.renderWindow().GetRenderers().GetFirstRenderer().ResetCamera()
+
+    def getPositionOfModelNodes(self, onlyVisible):
+        numNodes = slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLModelNode")
+        positionOfNodes = list()
+        for i in range(0, numNodes):
+            node = slicer.mrmlScene.GetNthNodeByClass(i, "vtkMRMLModelNode")
+            if node.GetName() in self.ignoredNodeNames:
+                continue
+            if onlyVisible is True and node.GetDisplayVisibility() == 0:
+                continue
+            positionOfNodes.append(i)
+        return positionOfNodes
+
+    def CreateNewNode(self, colorName, color, dim, origin):
+        # we add a pseudo-random number to the name of our empty volume to avoid the risk of having a volume called
+        #  exactly the same by the user which could be confusing. We could also have used slicer.app.sessionId()
+        if colorName not in self.colorSliceVolumes.keys():
+            VolumeName = "EasyClip_EmptyVolume_" + str(slicer.app.applicationPid()) + "_" + colorName
+            # Do NOT set the spacing and the origin of imageData (vtkImageData)
+            # The spacing and the origin should only be set in the vtkMRMLScalarVolumeNode!!!!!!
+            # We only create an image of 1 voxel (as we only use it to color the planes
+            imageData = vtk.vtkImageData()
+            imageData.SetDimensions(1, 1, 1)
+            imageData.AllocateScalars(vtk.VTK_UNSIGNED_CHAR, 1)
+            imageData.SetScalarComponentFromDouble(0, 0, 0, 0, color)
+            if hasattr(slicer, 'vtkMRMLLabelMapVolumeNode'):
+                sampleVolumeNode = slicer.vtkMRMLLabelMapVolumeNode()
+            else:
+                sampleVolumeNode = slicer.vtkMRMLScalarVolumeNode()
+            sampleVolumeNode = slicer.mrmlScene.AddNode(sampleVolumeNode)
+            sampleVolumeNode.SetName(VolumeName)
+            labelmapVolumeDisplayNode = slicer.vtkMRMLLabelMapVolumeDisplayNode()
+            slicer.mrmlScene.AddNode(labelmapVolumeDisplayNode)
+            colorNode = slicer.util.getNode('GenericAnatomyColors')
+            labelmapVolumeDisplayNode.SetAndObserveColorNodeID(colorNode.GetID())
+            sampleVolumeNode.SetAndObserveImageData(imageData)
+            sampleVolumeNode.SetAndObserveDisplayNodeID(labelmapVolumeDisplayNode.GetID())
+            labelmapVolumeDisplayNode.VisibilityOff()
+            self.colorSliceVolumes[colorName] = sampleVolumeNode.GetID()
+        sampleVolumeNode = slicer.mrmlScene.GetNodeByID(self.colorSliceVolumes[colorName])
+        sampleVolumeNode.SetOrigin(origin[0], origin[1], origin[2])
+        sampleVolumeNode.SetSpacing(dim[0], dim[1], dim[2])
+        if not hasattr(slicer, 'vtkMRMLLabelMapVolumeNode'):
+            sampleVolumeNode.SetLabelMap(1)
+        sampleVolumeNode.SetHideFromEditors(True)
+        sampleVolumeNode.SetSaveWithScene(False)
+        return sampleVolumeNode
 
     def ClippingButtonClicked(self):
         self.logic.initializePlane()
@@ -237,9 +379,9 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
                                                     self.radio_green_Pos.isChecked())
 class EasyClipLogic(ScriptedLoadableModuleLogic):
     def __init__(self):
-        self.ColorNodeCorrespondence = {'red': 'vtkMRMLSliceNodeRed',
-                                        'yellow': 'vtkMRMLSliceNodeYellow',
-                                        'green': 'vtkMRMLSliceNodeGreen'}
+        self.ColorNodeCorrespondence = {'Red': 'vtkMRMLSliceNodeRed',
+                                        'Yellow': 'vtkMRMLSliceNodeYellow',
+                                        'Green': 'vtkMRMLSliceNodeGreen'}
 
     def onCheckBoxClicked(self, colorPlane, checkBox, radioButton ):
         slice = slicer.util.getNode(self.ColorNodeCorrespondence[colorPlane])
