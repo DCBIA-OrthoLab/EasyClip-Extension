@@ -9,6 +9,7 @@ from slicer.ScriptedLoadableModule import *
 
 import os
 
+
 #
 # Load Files
 #
@@ -270,7 +271,10 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         positionOfVisibleNodes = self.getPositionOfModelNodes(True)
         if len(positionOfVisibleNodes) == 0:
             return
-        maxValue = slicer.sys.float_info.max
+        try:
+            maxValue = slicer.sys.float_info.max
+        except:
+            maxValue = self.logic.sys.float_info.max
         bound = [maxValue, -maxValue, maxValue, -maxValue, maxValue, -maxValue]
         for i in positionOfVisibleNodes:
             node = slicer.mrmlScene.GetNthNodeByClass(i, "vtkMRMLModelNode")
@@ -378,6 +382,12 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
                                                     self.radio_green_Neg.isChecked(),
                                                     self.radio_green_Pos.isChecked())
 class EasyClipLogic(ScriptedLoadableModuleLogic):
+
+    try:
+        slicer.sys
+    except:
+        import sys
+
     def __init__(self):
         self.ColorNodeCorrespondence = {'Red': 'vtkMRMLSliceNodeRed',
                                         'Yellow': 'vtkMRMLSliceNodeYellow',
