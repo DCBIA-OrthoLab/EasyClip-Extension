@@ -453,64 +453,6 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
         else:
             slice.SetWidgetVisible(False)
 
-    def computeBoxFunction(self, image):
-        numNodes = slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLModelNode")
-        for i in range(3, numNodes):
-            elements = slicer.mrmlScene.GetNthNodeByClass(i, "vtkMRMLModelNode" )
-            print elements.GetName()
-        node = slicer.util.getNode(elements.GetName())
-        polydata = node.GetPolyData()
-        bound = polydata.GetBounds()
-        print "bound", bound
-
-        dimX = bound[1]-bound[0]
-        dimY = bound[3]-bound[2]
-        dimZ = bound[5]-bound[4]
-
-        print "dimension X :", dimX
-        print "dimension Y :", dimY
-        print "dimension Z :", dimZ
-
-        dimX = dimX + 10
-        dimY = dimY + 20
-        dimZ = dimZ + 20
-
-        center = polydata.GetCenter()
-        print "Center polydata :", center
-
-        # Creation of an Image
-        image = sitk.Image(int(dimX), int(dimY), int(dimZ), sitk.sitkInt16)
-
-        dir = (-1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 1.0)
-        image.SetDirection(dir)
-
-        spacing = (1,1,1)
-        image.SetSpacing(spacing)
-
-        tab = [-center[0]+dimX/2,-center[1]+dimY/2,center[2]-dimZ/2]
-        print tab
-        image.SetOrigin(tab)
-
-
-        writer = sitk.ImageFileWriter()
-        tempPath = slicer.app.temporaryPath
-        filename = "Box.nrrd"
-        filenameFull=os.path.join(tempPath, filename)
-        print filenameFull
-        writer.SetFileName(str(filenameFull))
-        writer.Execute(image)
-
-
-        slicer.util.loadVolume(filenameFull)
-
-        #------------------------ Slice Intersection Visibility ----------------------#
-        numDisplayNode = slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLModelDisplayNode")
-        for i in range (3,numDisplayNode):
-            slice = slicer.mrmlScene.GetNthNodeByClass(i, "vtkMRMLModelDisplayNode" )
-            slice.SetSliceIntersectionVisibility(1)
-
-        return image
-
     def getMatrix(self, slice):
         mat = slice.GetSliceToRAS()
         m = numpy.matrix([[mat.GetElement(0, 0), mat.GetElement(0, 1), mat.GetElement(0, 2), mat.GetElement(0, 3)],
@@ -813,7 +755,6 @@ class EasyClipTest(ScriptedLoadableModuleTest):
         image = None
 
         logic = EasyClipLogic()
-        image = logic.computeBoxFunction(image)
         logic.getCoord()
         logic.clipping(True, False, True, False, False, False, False, False, False)
 
