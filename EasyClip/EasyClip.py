@@ -1,14 +1,8 @@
 from __main__ import vtk, qt, ctk, slicer
-
 import numpy
 import SimpleITK as sitk
-from math import *
-
-import unittest
 from slicer.ScriptedLoadableModule import *
-
 import os
-
 
 #
 # Load Files
@@ -43,6 +37,7 @@ class EasyClip(ScriptedLoadableModule):
 class EasyClipWidget(ScriptedLoadableModuleWidget):
     def setup(self):
         ScriptedLoadableModuleWidget.setup(self)
+        print "-------Setup---------"
 
         self.planeControlsDictionary = {}
         # Instantiate and connect widgets
@@ -106,12 +101,24 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.red_plane_box = qt.QGroupBox("Red Slice Clipping")
         self.red_plane_box.setCheckable(True)
         self.red_plane_box.setChecked(False)
-        self.red_plane_box.connect('clicked(bool)', self.redPlaneCheckBoxClicked)
-
         self.radio_red_Neg = qt.QRadioButton("Keep Down Arrow")
         self.radio_red_Neg.setIcon(qt.QIcon(":/Icons/RedSpaceNegative.png"))
         self.radio_red_Pos = qt.QRadioButton("Keep Top Arrow")
         self.radio_red_Pos.setIcon(qt.QIcon(":/Icons/RedSpacePositive.png"))
+        self.red_plane_box.connect('clicked(bool)', self.redPlaneCheckBoxClicked)
+        self.red_plane_box.connect('clicked(bool)', lambda: self.updateSliceState("vtkMRMLSliceNodeRed",
+                                                                                  self.red_plane_box.isChecked(),
+                                                                                  self.radio_red_Neg.isChecked(),
+                                                                                  self.radio_red_Pos.isChecked()))
+        self.radio_red_Neg.connect('clicked(bool)', lambda: self.updateSliceState("vtkMRMLSliceNodeRed",
+                                                                                  self.red_plane_box.isChecked(),
+                                                                                  self.radio_red_Neg.isChecked(),
+                                                                                  self.radio_red_Pos.isChecked()))
+        self.radio_red_Pos.connect('clicked(bool)', lambda: self.updateSliceState("vtkMRMLSliceNodeRed",
+                                                                                  self.red_plane_box.isChecked(),
+                                                                                  self.radio_red_Neg.isChecked(),
+                                                                                  self.radio_red_Pos.isChecked()))
+
 
         vbox = qt.QHBoxLayout()
         vbox.addWidget(self.radio_red_Neg)
@@ -129,6 +136,19 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.radio_yellow_Neg.setIcon(qt.QIcon(":/Icons/YellowSpaceNegative.png"))
         self.radio_yellow_Pos = qt.QRadioButton("Keep Top Arrow")
         self.radio_yellow_Pos.setIcon(qt.QIcon(":/Icons/YellowSpacePositive.png"))
+        self.yellow_plane_box.connect('clicked(bool)', lambda: self.updateSliceState("vtkMRMLSliceNodeYellow",
+                                                                                  self.yellow_plane_box.isChecked(),
+                                                                                  self.radio_yellow_Neg.isChecked(),
+                                                                                  self.radio_yellow_Pos.isChecked()))
+        self.radio_yellow_Neg.connect('clicked(bool)', lambda: self.updateSliceState("vtkMRMLSliceNodeYellow",
+                                                                                  self.yellow_plane_box.isChecked(),
+                                                                                  self.radio_yellow_Neg.isChecked(),
+                                                                                  self.radio_yellow_Pos.isChecked()))
+        self.radio_yellow_Pos.connect('clicked(bool)', lambda: self.updateSliceState("vtkMRMLSliceNodeYellow",
+                                                                                  self.yellow_plane_box.isChecked(),
+                                                                                  self.radio_yellow_Neg.isChecked(),
+                                                                                  self.radio_yellow_Pos.isChecked()))
+
 
         vbox = qt.QHBoxLayout()
         vbox.addWidget(self.radio_yellow_Neg)
@@ -147,6 +167,19 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.radio_green_Neg.setIcon(qt.QIcon(":/Icons/GreenSpaceNegative.png"))
         self.radio_green_Pos = qt.QRadioButton("Keep Top Arrow")
         self.radio_green_Pos.setIcon(qt.QIcon(":/Icons/GreenSpacePositive.png"))
+        self.green_plane_box.connect('clicked(bool)', lambda: self.updateSliceState("vtkMRMLSliceNodeGreen",
+                                                                                  self.green_plane_box.isChecked(),
+                                                                                  self.radio_green_Neg.isChecked(),
+                                                                                  self.radio_green_Pos.isChecked()))
+        self.radio_green_Neg.connect('clicked(bool)', lambda: self.updateSliceState("vtkMRMLSliceNodeGreen",
+                                                                                  self.green_plane_box.isChecked(),
+                                                                                  self.radio_green_Neg.isChecked(),
+                                                                                  self.radio_green_Pos.isChecked()))
+        self.radio_green_Pos.connect('clicked(bool)', lambda: self.updateSliceState("vtkMRMLSliceNodeGreen",
+                                                                                  self.green_plane_box.isChecked(),
+                                                                                  self.radio_green_Neg.isChecked(),
+                                                                                  self.radio_green_Pos.isChecked()))
+
 
         vbox = qt.QHBoxLayout()
         vbox.addWidget(self.radio_green_Neg)
@@ -370,17 +403,15 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         return sampleVolumeNode
 
     def ClippingButtonClicked(self):
-        self.logic.initializePlane()
         self.logic.getCoord()
-        self.dictionnaryModel = self.logic.clipping(self.red_plane_box.isChecked(),
-                                                    self.radio_red_Neg.isChecked(),
-                                                    self.radio_red_Pos.isChecked(),
-                                                    self.yellow_plane_box.isChecked(),
-                                                    self.radio_yellow_Neg.isChecked(),
-                                                    self.radio_yellow_Pos.isChecked(),
-                                                    self.green_plane_box.isChecked(),
-                                                    self.radio_green_Neg.isChecked(),
-                                                    self.radio_green_Pos.isChecked())
+        self.dictionnaryModel = self.logic.clipping()
+
+    def updateSliceState(self, plane, boxState, negState, posState):
+        print "Update Slice State"
+        self.logic.planeDict[plane].boxState = boxState
+        self.logic.planeDict[plane].negState = negState
+        self.logic.planeDict[plane].posState = posState
+
 class EasyClipLogic(ScriptedLoadableModuleLogic):
 
     try:
@@ -388,10 +419,30 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
     except:
         import sys
 
+    class planeDef(object):
+        def __init__(self):
+            # Matrix that define each plane
+            self.matrix = None
+            # normal to the plane
+            self.n = None
+            # point in the plane
+            self.P = None
+            # Slice State
+            self.boxState = False
+            self.negState = False
+            self.posState = False
+            # Plane for cliping
+            self.vtkPlane = vtk.vtkPlane()
+
     def __init__(self):
         self.ColorNodeCorrespondence = {'Red': 'vtkMRMLSliceNodeRed',
                                         'Yellow': 'vtkMRMLSliceNodeYellow',
                                         'Green': 'vtkMRMLSliceNodeGreen'}
+        self.get_normal = numpy.matrix([[0], [0], [1], [0]])
+        self.get_point = numpy.matrix([[0], [0], [0], [1]])
+        self.planeDict = dict()
+        for key in self.ColorNodeCorrespondence:
+            self.planeDict[self.ColorNodeCorrespondence[key]] = self.planeDef()
 
     def onCheckBoxClicked(self, colorPlane, checkBox, radioButton ):
         slice = slicer.util.getNode(self.ColorNodeCorrespondence[colorPlane])
@@ -401,65 +452,6 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
             radioButton.setChecked(True)
         else:
             slice.SetWidgetVisible(False)
-
-    def initializePlane(self):
-        # Red Plane Definition
-        self.redslice = slicer.util.getNode('vtkMRMLSliceNodeRed')
-        print self.redslice
-        self.matRed = self.redslice.GetSliceToRAS()
-        print self.matRed
-
-        self.matRed_init = numpy.matrix([[-1,0,0,0],
-                                         [0,1,0,0],
-                                         [0,0,1,0],
-                                         [0,0,0,1]])
-
-
-        # Yellow Plane Definition
-        self.yellowslice = slicer.util.getNode('vtkMRMLSliceNodeYellow')
-        self.matYellow = self.yellowslice.GetSliceToRAS()
-        print self.matYellow
-
-        self.matYellow_init = numpy.matrix([[0,0,1,0],
-                                            [-1,0,0,0],
-                                            [0,1,0,0],
-                                            [0,0,0,1]])
-
-
-        # Green Plane Definition
-        self.greenslice = slicer.util.getNode('vtkMRMLSliceNodeGreen')
-        self.matGreen = self.greenslice.GetSliceToRAS()
-        print self.matGreen
-
-        self.matGreen_init = numpy.matrix([[-1,0,0,0],
-                                           [0,0,1,0],
-                                           [0,1,0,0],
-                                           [0,0,0,1]])
-
-        #---------------------- Coefficient ----------------------#
-        # Definition of the coefficient to determine the plane equation
-        self.a_red = 0
-        self.b_red = 0
-        self.c_red = 0
-        self.d_red = 0
-
-        self.a_yellow = 0
-        self.b_yellow = 0
-        self.c_yellow = 0
-        self.d_yellow = 0
-
-        self.a_green = 0
-        self.b_green = 0
-        self.c_green = 0
-        self.d_green = 0
-
-        # The Red Slice is the first slice determined on Slicer.
-        # The others are defined from a transformation matrix applied on this one (RED SLICE)
-        # Normal vector to the Red slice:
-        self.n_vector = numpy.matrix([[0], [0], [1], [1]])
-
-        # point on the Red slice:
-        self.A = numpy.matrix([[0], [0], [0], [1]])
 
     def computeBoxFunction(self, image):
         numNodes = slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLModelNode")
@@ -519,218 +511,50 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
 
         return image
 
+    def getMatrix(self, slice):
+        mat = slice.GetSliceToRAS()
+        m = numpy.matrix([[mat.GetElement(0, 0), mat.GetElement(0, 1), mat.GetElement(0, 2), mat.GetElement(0, 3)],
+                          [mat.GetElement(1, 0), mat.GetElement(1, 1), mat.GetElement(1, 2), mat.GetElement(1, 3)],
+                          [mat.GetElement(2, 0), mat.GetElement(2, 1), mat.GetElement(2, 2), mat.GetElement(2, 3)],
+                          [mat.GetElement(3, 0), mat.GetElement(3, 1), mat.GetElement(3, 2), mat.GetElement(3, 3)]])
+        return m
 
     def getCoord(self):
-        #---------------------- RED SLICE -----------------------#
-        # Matrix with the elements of SliceToRAS
-        self.m_Red = numpy.matrix([[self.matRed.GetElement(0,0), self.matRed.GetElement(0,1), self.matRed.GetElement(0,2), self.matRed.GetElement(0,3)],
-                                   [self.matRed.GetElement(1,0), self.matRed.GetElement(1,1), self.matRed.GetElement(1,2), self.matRed.GetElement(1,3)],
-                                   [self.matRed.GetElement(2,0), self.matRed.GetElement(2,1), self.matRed.GetElement(2,2), self.matRed.GetElement(2,3)],
-                                   [self.matRed.GetElement(3,0), self.matRed.GetElement(3,1), self.matRed.GetElement(3,2), self.matRed.GetElement(3,3)]])
+        for key, planeDef in self.planeDict.iteritems():
+            planeDef.matrix = self.getMatrix(slicer.util.getNode(key))
+            planeDef.n = planeDef.matrix * self.get_normal
+            print "n : \n", planeDef.n
+            planeDef.P = planeDef.matrix * self.get_point
+            print "P : \n", planeDef.P
+            a = planeDef.n[0]
+            b = planeDef.n[1]
+            c = planeDef.n[2]
+            d = planeDef.n[0]*planeDef.P[0] + planeDef.n[1]*planeDef.P[1] + planeDef.n[2]*planeDef.P[2]
+            print key + "plan equation : \n", a ,"* x + ", b , "* y + ", c , "* z - ", d ," = 0 "
 
 
-        # #---------------------- YELLOW SLICE ----------------------#
-        #
-        # # Matrix with the elements of SliceToRAS
-        self.m_Yellow = numpy.matrix([[self.matYellow.GetElement(0,0), self.matYellow.GetElement(0,1), self.matYellow.GetElement(0,2), self.matYellow.GetElement(0,3)],
-                                      [self.matYellow.GetElement(1,0), self.matYellow.GetElement(1,1), self.matYellow.GetElement(1,2), self.matYellow.GetElement(1,3)],
-                                      [self.matYellow.GetElement(2,0), self.matYellow.GetElement(2,1), self.matYellow.GetElement(2,2), self.matYellow.GetElement(2,3)],
-                                      [self.matYellow.GetElement(3,0), self.matYellow.GetElement(3,1), self.matYellow.GetElement(3,2), self.matYellow.GetElement(3,3)]])
-
-        #
-        # #---------------------- GREEN SLICE ----------------------#
-        # # Matrix with the elements of SliceToRAS
-        self.m_Green = numpy.matrix([[self.matGreen.GetElement(0,0), self.matGreen.GetElement(0,1), self.matGreen.GetElement(0,2), self.matGreen.GetElement(0,3)],
-                                     [self.matGreen.GetElement(1,0), self.matGreen.GetElement(1,1), self.matGreen.GetElement(1,2), self.matGreen.GetElement(1,3)],
-                                     [self.matGreen.GetElement(2,0), self.matGreen.GetElement(2,1), self.matGreen.GetElement(2,2), self.matGreen.GetElement(2,3)],
-                                     [self.matGreen.GetElement(3,0), self.matGreen.GetElement(3,1), self.matGreen.GetElement(3,2), self.matGreen.GetElement(3,3)]])
-
-        #------------------- PLAN -----------------#
-
-        # AXES FOR THE PLAN :
-
-        #           |z
-        #           |
-        #           |________y
-        #          /
-        #         /
-        #        /x
-
-        # YELLOW PLAN : the equation is the coordinates on the x axis
-        # GREEN PLAN : the equation is the coordinates on the y axis
-        # RED PLAN : the equation is the coordinates on the z axis
-
-        # RED PLAN:
-        self.n_NewRedPlan = self.m_Red * self.n_vector
-        print "n : \n", self.n_NewRedPlan
-
-        self.A_NewRedPlan = self.m_Red * self.A
-        print "A : \n", self.A_NewRedPlan
-
-        self.a_red = self.n_NewRedPlan[0]
-        self.b_red = self.n_NewRedPlan[1]
-        self.c_red = self.n_NewRedPlan[2]
-        self.d_red = self.n_NewRedPlan[0]*self.A_NewRedPlan[0] + self.n_NewRedPlan[1]*self.A_NewRedPlan[1] + self.n_NewRedPlan[2]*self.A_NewRedPlan[2]
-
-        print "Red plan equation : \n", self.a_red ,"* x + ", self.b_red , "* y + ", self.c_red , "* z + ", self.d_red ," = 0 "
-
-        # # YELLOW PLAN:
-        self.n_NewYellowPlan = self.m_Yellow * self.n_vector
-        print "n : \n", self.n_NewYellowPlan
-
-        self.A_NewYellowPlan = self.m_Yellow * self.A
-        print "A : \n", self.A_NewYellowPlan
-
-        self.a_yellow = self.n_NewYellowPlan[0]
-        self.b_yellow = self.n_NewYellowPlan[1]
-        self.c_yellow = self.n_NewYellowPlan[2]
-        self.d_yellow = self.n_NewYellowPlan[0]*self.A_NewYellowPlan[0] + self.n_NewYellowPlan[1]*self.A_NewYellowPlan[1]+self.n_NewYellowPlan[2]*self.A_NewYellowPlan[2]
-
-        print "Yellow plan equation : \n", self.a_yellow, "* x + ", self.b_yellow, "* y + ", self.c_yellow, "* z + ", self.d_yellow," = 0 "
-
-        # GREEN PLAN:
-        self.n_NewGreenPlan = self.m_Green * self.n_vector
-        print "n : \n", self.n_NewGreenPlan
-
-        self.A_NewGreenPlan = self.m_Green * self.A
-        print "A : \n", self.A_NewGreenPlan
-
-        self.a_green = self.n_NewGreenPlan[0]
-        self.b_green = self.n_NewGreenPlan[1]
-        self.c_green = self.n_NewGreenPlan[2]
-        self.d_green = self.n_NewGreenPlan[0]*self.A_NewGreenPlan[0] + self.n_NewGreenPlan[1]*self.A_NewGreenPlan[1] + self.n_NewGreenPlan[2]*self.A_NewGreenPlan[2]
-
-        print "Green plan equation : \n", self.a_green, "* x + ", self.b_green, "* y + ", self.c_green, "* z + ", self.d_green," = 0 "
-
-
-    def clipping(self,
-                 red_plane_boxState,
-                 radio_red_NegState,
-                 radio_red_PosState,
-                 yellow_plane_boxState,
-                 radio_yellow_NegState,
-                 radio_yellow_PosState,
-                 green_plane_boxState,
-                 radio_green_NegState,
-                 radio_green_PosState):
-
-        # Clipping in the direction of the normal vector
-        self.plane_red = vtk.vtkPlane()
-        self.plane_yellow = vtk.vtkPlane()
-        self.plane_green = vtk.vtkPlane()
+    def clipping(self):
 
         self.planeCollection = vtk.vtkPlaneCollection()
-
-        #Condition for the red plane
-        print self.m_Red
-        print self.n_NewRedPlan
-
-        print self.A_NewRedPlan
-        self.n_NewRedPlan1 = self.n_NewRedPlan
-        self.n_NewGreenPlan1 = self.n_NewGreenPlan
-        self.n_NewYellowPlan1 = self.n_NewYellowPlan
-
-        self.n_NewRedPlan1[0] = self.n_NewRedPlan[0] - self.A_NewRedPlan[0]
-        self.n_NewRedPlan1[1] = self.n_NewRedPlan[1] - self.A_NewRedPlan[1]
-        self.n_NewRedPlan1[2] = self.n_NewRedPlan[2] - self.A_NewRedPlan[2]
-        print self.n_NewRedPlan1
-
-        if red_plane_boxState:
-            if radio_red_NegState:
-                self.plane_red.SetOrigin(self.A_NewRedPlan[0], self.A_NewRedPlan[1], self.A_NewRedPlan[2])
-                if self.n_NewRedPlan1[2] >= 0:
-                    self.plane_red.SetNormal(-self.n_NewRedPlan1[0], -self.n_NewRedPlan1[1], -self.n_NewRedPlan1[2])
-                if self.n_NewRedPlan1[2] < 0:
-                    self.plane_red.SetNormal(self.n_NewRedPlan1[0], self.n_NewRedPlan1[1], self.n_NewRedPlan1[2])
-                self.planeCollection.AddItem(self.plane_red)
-                print self.plane_red
-
-            if radio_red_PosState:
-                self.plane_red.SetOrigin(self.A_NewRedPlan[0], self.A_NewRedPlan[1], self.A_NewRedPlan[2])
-                if self.n_NewRedPlan1[2] >= 0:
-                    self.plane_red.SetNormal(self.n_NewRedPlan1[0], self.n_NewRedPlan1[1], self.n_NewRedPlan1[2])
-                if self.n_NewRedPlan1[2] < 0:
-                    self.plane_red.SetNormal(-self.n_NewRedPlan1[0], -self.n_NewRedPlan1[1], -self.n_NewRedPlan1[2])
-                self.planeCollection.AddItem(self.plane_red)
-                print self.plane_red
-
-        #Condition for the yellow plane
-        print self.m_Yellow
-        print self.n_NewYellowPlan
-
-        print self.A_NewYellowPlan
-        self.n_NewYellowPlan1[0] = self.n_NewYellowPlan[0] - self.A_NewYellowPlan[0]
-        self.n_NewYellowPlan1[1] = self.n_NewYellowPlan[1] - self.A_NewYellowPlan[1]
-        self.n_NewYellowPlan1[2] = self.n_NewYellowPlan[2] - self.A_NewYellowPlan[2]
-        print self.n_NewYellowPlan1
-
-        if yellow_plane_boxState:
-            if radio_yellow_NegState:
-                self.plane_yellow.SetOrigin(self.A_NewYellowPlan[0], self.A_NewYellowPlan[1], self.A_NewYellowPlan[2])
-                if self.n_NewYellowPlan1[0] >= 0:
-                    self.plane_yellow.SetNormal(-self.n_NewYellowPlan1[0], -self.n_NewYellowPlan1[1], -self.n_NewYellowPlan1[2])
-                if self.n_NewYellowPlan1[0] < 0:
-                    self.plane_yellow.SetNormal(self.n_NewYellowPlan1[0], self.n_NewYellowPlan1[1], self.n_NewYellowPlan1[2])
-                self.planeCollection.AddItem(self.plane_yellow)
-                print self.plane_yellow
-
-            if radio_yellow_PosState:
-                self.plane_yellow.SetOrigin(self.A_NewYellowPlan[0], self.A_NewYellowPlan[1], self.A_NewYellowPlan[2])
-                if self.n_NewYellowPlan1[0] >= 0:
-                    self.plane_yellow.SetNormal(self.n_NewYellowPlan1[0], self.n_NewYellowPlan1[1], self.n_NewYellowPlan1[2])
-                if self.n_NewYellowPlan1[0] < 0:
-                    self.plane_yellow.SetNormal(-self.n_NewYellowPlan1[0], -self.n_NewYellowPlan1[1], -self.n_NewYellowPlan1[2])
-                self.planeCollection.AddItem(self.plane_yellow)
-                print self.plane_yellow
-
-        #Condition for the green plane
-        print self.m_Green
-        print self.n_NewGreenPlan
-
-        print self.A_NewGreenPlan
-        self.n_NewGreenPlan1[0] = self.n_NewGreenPlan[0] - self.A_NewGreenPlan[0]
-        self.n_NewGreenPlan1[1] = self.n_NewGreenPlan[1] - self.A_NewGreenPlan[1]
-        self.n_NewGreenPlan1[2] = self.n_NewGreenPlan[2] - self.A_NewGreenPlan[2]
-        print self.n_NewGreenPlan1
-
-        if green_plane_boxState:
-            if radio_green_NegState:
-                self.plane_green.SetOrigin(self.A_NewGreenPlan[0], self.A_NewGreenPlan[1], self.A_NewGreenPlan[2])
-                if self.n_NewGreenPlan1[1] >= 0:
-                    self.plane_green.SetNormal(-self.n_NewGreenPlan1[0], -self.n_NewGreenPlan1[1], -self.n_NewGreenPlan1[2])
-                if self.n_NewGreenPlan1[1] < 0:
-                    self.plane_green.SetNormal(self.n_NewGreenPlan1[0], self.n_NewGreenPlan1[1], self.n_NewGreenPlan1[2])
-                self.planeCollection.AddItem(self.plane_green)
-                print self.plane_green
-
-            if radio_green_PosState:
-                self.plane_green.SetOrigin(self.A_NewGreenPlan[0], self.A_NewGreenPlan[1], self.A_NewGreenPlan[2])
-                if self.n_NewGreenPlan1[1] > 0:
-                    self.plane_green.SetNormal(self.n_NewGreenPlan1[0], self.n_NewGreenPlan1[1], self.n_NewGreenPlan1[2])
-                if self.n_NewGreenPlan1[1] < 0:
-                    self.plane_green.SetNormal(-self.n_NewGreenPlan1[0], -self.n_NewGreenPlan1[1], -self.n_NewGreenPlan1[2])
-                self.planeCollection.AddItem(self.plane_green)
-                print self.plane_green
-
+        for key, planeDef in self.planeDict.iteritems():
+            if planeDef.boxState:
+                planeDef.vtkPlane.SetOrigin(planeDef.P[0], planeDef.P[1], planeDef.P[2])
+                if planeDef.negState:
+                    planeDef.vtkPlane.SetNormal(-planeDef.n[0], -planeDef.n[1], -planeDef.n[2])
+                if planeDef.posState:
+                    planeDef.vtkPlane.SetNormal(planeDef.n[0], planeDef.n[1], planeDef.n[2])
+                self.planeCollection.AddItem(planeDef.vtkPlane)
 
         numNodes = slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLModelNode")
         self.dictionnaryModel = dict()
         self.dictionnaryModel.clear()
-
-
         for i in range(3, numNodes):
             mh = slicer.mrmlScene.GetNthNodeByClass(i, "vtkMRMLModelNode")
             self.model = slicer.util.getNode(mh.GetName())
-            print mh.GetName()
-
             self.dictionnaryModel[self.model.GetID()]=self.model.GetPolyData()
-
             self.polyData = self.model.GetPolyData()
-
-
             PolyAlgorithm = vtk.vtkClipClosedSurface()
             PolyAlgorithm.SetInputData(self.polyData)
-
             clipper = vtk.vtkClipClosedSurface()
             clipper.SetClippingPlanes(self.planeCollection)
             clipper.SetInputConnection(PolyAlgorithm.GetOutputPort())
@@ -990,7 +814,6 @@ class EasyClipTest(ScriptedLoadableModuleTest):
 
         logic = EasyClipLogic()
         image = logic.computeBoxFunction(image)
-        logic.initializePlane()
         logic.getCoord()
         logic.clipping(True, False, True, False, False, False, False, False, False)
 
