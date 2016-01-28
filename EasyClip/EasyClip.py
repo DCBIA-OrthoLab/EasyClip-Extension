@@ -1,6 +1,6 @@
 from __main__ import vtk, qt, ctk, slicer
 import numpy
-import SimpleITK as sitk
+import pickle
 from slicer.ScriptedLoadableModule import *
 import os
 
@@ -323,23 +323,18 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
             bound[3] = max(bound[3], tempbound[3])
             bound[5] = max(bound[5], tempbound[5])
         # --------------------------- Box around the model --------------------------#
-
         dim = []
         origin = []
         for x in range(0, 3):
             dim.append(bound[x * 2 + 1] - bound[x * 2])
             origin.append(bound[x * 2] + dim[x] / 2)
             dim[x] *= 1.1
-        print dim
-        print origin
-
         dictColors = {'Red': 32, 'Yellow': 15, 'Green': 1}
         for x in dictColors.keys():
             sampleVolumeNode = self.CreateNewNode(x, dictColors[x], dim, origin)
             compNode = slicer.util.getNode('vtkMRMLSliceCompositeNode' + x)
             compNode.SetLinkedControl(False)
             compNode.SetBackgroundVolumeID(sampleVolumeNode.GetID())
-            print "set background" + x
         lm = slicer.app.layoutManager()
         #Reset and fit 2D-views
         lm.resetSliceViews()
@@ -507,176 +502,34 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
             self.model.SetAndObservePolyData(polyDataNew)
         return self.dictionnaryModel
 
-
     def saveFunction(self):
         filename = qt.QFileDialog.getSaveFileName(parent=self,caption='Save file')
-        fichier = open(filename, "w")
-        fichier.write("SliceToRAS Red Slice: \n")
-        fichier.write(str(self.m_Red) + '\n')
-        fichier.write('\n')
-
-        fichier.write("SliceToRAS Yellow Slice: \n")
-        fichier.write(str(self.m_Yellow) + '\n')
-        fichier.write('\n')
-
-        fichier.write("SliceToRAS Green Slice: \n")
-        fichier.write(str(self.m_Green) + '\n')
-        fichier.write('\n')
-
-        fichier.write("Coefficients for the Red plane: \n")
-        fichier.write("a:" + str(self.a_red) + '\n')
-        fichier.write("b:" + str(self.b_red) + '\n')
-        fichier.write("c:" + str(self.c_red) + '\n')
-        fichier.write("d:" + str(self.d_red) + '\n')
-
-        fichier.write('\n')
-        fichier.write("Coefficients for the Yellow plane: \n")
-        fichier.write("a:" + str(self.a_yellow) + '\n')
-        fichier.write("b:" + str(self.b_yellow) + '\n')
-        fichier.write("c:" + str(self.c_yellow) + '\n')
-        fichier.write("d:" + str(self.d_yellow) + '\n')
-
-        fichier.write('\n')
-        fichier.write("Coefficients for the Green plane: \n")
-        fichier.write("a:" + str(self.a_green) + '\n')
-        fichier.write("b:" + str(self.b_green) + '\n')
-        fichier.write("c:" + str(self.c_green) + '\n')
-        fichier.write("d:" + str(self.d_green) + '\n')
-
-
-        fichier.close()
+        tempDictionary = {}
+        for key in self.ColorNodeCorrespondence:
+            slice = slicer.util.getNode(self.ColorNodeCorrespondence[key])
+            tempDictionary[key] = self.getMatrix(slice).tolist()
+        if filename is None:
+            filename = qt.QFileDialog.getSaveFileName(parent=self, caption='Save file')
+        if filename != "":
+            fileObj = open(filename, "wb")
+            pickle.dump(tempDictionary, fileObj)
+            fileObj.close()
 
     def readPlaneFunction(self, red_plane_box, yellow_plane_box, green_plane_box):
         filename = qt.QFileDialog.getOpenFileName(parent=self,caption='Open file')
-        print 'filename:', filename
-        fichier2 = open(filename, 'r')
-        fichier2.readline()
-        NodeRed = slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeRed')
-        matRed = NodeRed.GetSliceToRAS()
-
-        for i in range(0, 4):
-            ligne = fichier2.readline()
-            ligne = ligne.replace('[', '')
-            ligne = ligne.replace('   ', ' ')
-            ligne = ligne.replace(']', '')
-            ligne = ligne.replace('\n', '')
-            print ligne
-            items = ligne.split()
-            print items
-            for j in range(0, 4):
-                matRed.SetElement(i, j, float(items[j]))
-
-
-        print matRed
-        compare_red = 0
-        self.matRed_init = numpy.matrix([[-1,0,0,0],
-                                         [0,1,0,0],
-                                         [0,0,1,0],
-                                         [0,0,0,1]])
-        print "self.matRed_init", self.matRed_init
-        for i in range(0,4):
-            for j in range(0,4):
-                if matRed.GetElement(i,j) == self.matRed_init[i,j]:
-                    compare_red = compare_red + 1
-
-        print compare_red
-
-        if compare_red != 16:
-            self.redslice = slicer.util.getNode('vtkMRMLSliceNodeRed')
-            if red_plane_box.isChecked():
-                red_plane_box.setChecked(False)
-                self.redslice.SetWidgetVisible(False)
-            red_plane_box.setChecked(True)
-            # widget.redPlaneCheckBoxClicked()
-            self.redslice.SetWidgetVisible(True)
-
-        fichier2.readline()
-        fichier2.readline()
-
-
-        self.matYellow_init = numpy.matrix([[0,0,1,0],
-                                            [-1,0,0,0],
-                                            [0,1,0,0],
-                                            [0,0,0,1]])
-        NodeYellow = slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeYellow')
-        matYellow = NodeYellow.GetSliceToRAS()
-        for i in range(0, 4):
-            ligne = fichier2.readline()
-            ligne = ligne.replace('[', '')
-            ligne = ligne.replace('   ', ' ')
-            ligne = ligne.replace(']', '')
-            ligne = ligne.replace('\n', '')
-            print ligne
-            items = ligne.split()
-            print items
-            for j in range(0, 4):
-                matYellow.SetElement(i, j, float(items[j]))
-
-
-        print matYellow
-
-        compare_yellow = 0
-        for i in range(0,4):
-            for j in range(0,4):
-                if matYellow.GetElement(i,j) == self.matYellow_init[i,j]:
-                    compare_yellow = compare_yellow + 1
-
-        print compare_yellow
-
-        if compare_yellow != 16:
-            self.yellowslice = slicer.util.getNode('vtkMRMLSliceNodeYellow')
-            if yellow_plane_box.isChecked():
-                yellow_plane_box.setChecked(False)
-                self.yellowslice.SetWidgetVisible(False)
-
-            yellow_plane_box.setChecked(True)
-            # self.yellowPlaneCheckBoxClicked()
-            self.yellowslice.SetWidgetVisible(True)
-
-        fichier2.readline()
-        fichier2.readline()
-
-        self.matGreen_init = numpy.matrix([[-1,0,0,0],
-                                           [0,0,1,0],
-                                           [0,1,0,0],
-                                           [0,0,0,1]])
-        NodeGreen = slicer.mrmlScene.GetNodeByID('vtkMRMLSliceNodeGreen')
-        matGreen = NodeGreen.GetSliceToRAS()
-        for i in range (0,4):
-            ligne = fichier2.readline()
-            ligne = ligne.replace('[', '')
-            ligne = ligne.replace('   ', ' ')
-            ligne = ligne.replace(']', '')
-            ligne = ligne.replace('\n', '')
-            print ligne
-            items = ligne.split()
-            print items
-            for j in range(0, 4):
-                matGreen.SetElement(i, j, float(items[j]))
-
-
-        print matGreen
-
-
-        compare_green = 0
-        for i in range(0,4):
-            for j in range(0,4):
-                if matGreen.GetElement(i,j) == self.matGreen_init[i,j]:
-                    compare_green = compare_green + 1
-
-        print compare_green
-
-        if compare_green != 16:
-            self.greenslice = slicer.util.getNode('vtkMRMLSliceNodeGreen')
-            if green_plane_box.isChecked():
-                green_plane_box.setChecked(False)
-                self.greenslice.SetWidgetVisible(False)
-
-            green_plane_box.setChecked(True)
-            # self.greenPlaneCheckBoxClicked()
-            self.greenslice.SetWidgetVisible(True)
-
-        fichier2.close()
+        if filename is None:
+            filename = qt.QFileDialog.getOpenFileName(parent=self, caption='Open file')
+        if filename != "":
+            fileObj = open(filename, "rb")
+            tempDictionary = pickle.load(fileObj)
+            for key in self.ColorNodeCorrespondence:
+                node = slicer.mrmlScene.GetNodeByID(self.ColorNodeCorrespondence[key])
+                matList = tempDictionary[key]
+                matNode = node.GetSliceToRAS()
+                for col in range(0, len(matList)):
+                    for row in range(0, len(matList[col])):
+                        matNode.SetElement(col, row, matList[col][row])
+            fileObj.close()
 
 class EasyClipTest(ScriptedLoadableModuleTest):
     def setUp(self):
