@@ -55,7 +55,6 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.loadFormLayout = qt.QFormLayout(self.loadCollapsibleButton)
 
         # GLOBALS:
-        self.image = None
         self.logic = EasyClipLogic()
         #--------------------------- List of Models --------------------------#
 
@@ -237,6 +236,11 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         #-------------------- onCloseScene ----------------------#
         slicer.mrmlScene.AddObserver(slicer.mrmlScene.EndCloseEvent, self.onCloseScene)
 
+    def onCloseScene(self, obj, event):
+        for key in self.logic.ColorNodeCorrespondence:
+            self.logic.planeDict[self.logic.ColorNodeCorrespondence[key]] = self.logic.planeDef()
+
+
     def enter(self):
         if self.autoChangeLayout.isChecked():
             lm = slicer.app.layoutManager()
@@ -285,11 +289,6 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         for key,value in self.dictionnaryModel.iteritems():
             model = slicer.mrmlScene.GetNodeByID(key)
             model.SetAndObservePolyData(value)
-
-    def onCloseScene(self, obj, event):
-        globals()["EasyClip"] = slicer.util.reloadScriptedModule("EasyClip")
-        if self.image:
-            self.image.__del__()
 
     def onComputeBox(self):
         #--------------------------- Box around the model --------------------------#
@@ -596,8 +595,6 @@ class EasyClipTest(ScriptedLoadableModuleTest):
         greenslice.SetWidgetVisible(True)
 
         self.delayDisplay('planes are placed!')
-
-        image = None
 
         logic = EasyClipLogic()
         logic.getCoord()
