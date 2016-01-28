@@ -105,7 +105,9 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.radio_red_Neg.setIcon(qt.QIcon(":/Icons/RedSpaceNegative.png"))
         self.radio_red_Pos = qt.QRadioButton("Keep Top Arrow")
         self.radio_red_Pos.setIcon(qt.QIcon(":/Icons/RedSpacePositive.png"))
-        self.red_plane_box.connect('clicked(bool)', self.redPlaneCheckBoxClicked)
+        self.red_plane_box.connect('clicked(bool)', lambda: self.logic.onCheckBoxClicked('Red',
+                                                                                         self.red_plane_box,
+                                                                                         self.radio_red_Neg))
         self.red_plane_box.connect('clicked(bool)', lambda: self.updateSliceState("vtkMRMLSliceNodeRed",
                                                                                   self.red_plane_box.isChecked(),
                                                                                   self.radio_red_Neg.isChecked(),
@@ -126,16 +128,16 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         vbox.addStretch(1)
         self.red_plane_box.setLayout(vbox)
         self.loadFormLayout.addWidget(self.red_plane_box)
-
         self.yellow_plane_box = qt.QGroupBox("Yellow Slice Clipping")
         self.yellow_plane_box.setCheckable(True)
         self.yellow_plane_box.setChecked(False)
-        self.yellow_plane_box.connect('clicked(bool)', self.yellowPlaneCheckBoxClicked)
-
         self.radio_yellow_Neg= qt.QRadioButton("Keep Down Arrow")
         self.radio_yellow_Neg.setIcon(qt.QIcon(":/Icons/YellowSpaceNegative.png"))
         self.radio_yellow_Pos = qt.QRadioButton("Keep Top Arrow")
         self.radio_yellow_Pos.setIcon(qt.QIcon(":/Icons/YellowSpacePositive.png"))
+        self.yellow_plane_box.connect('clicked(bool)', lambda: self.logic.onCheckBoxClicked('Yellow',
+                                                                                            self.yellow_plane_box,
+                                                                                            self.radio_yellow_Neg))
         self.yellow_plane_box.connect('clicked(bool)', lambda: self.updateSliceState("vtkMRMLSliceNodeYellow",
                                                                                   self.yellow_plane_box.isChecked(),
                                                                                   self.radio_yellow_Neg.isChecked(),
@@ -156,17 +158,16 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         vbox.addStretch(1)
         self.yellow_plane_box.setLayout(vbox)
         self.loadFormLayout.addWidget(self.yellow_plane_box)
-
-
         self.green_plane_box = qt.QGroupBox("Green Slice Clipping")
         self.green_plane_box.setCheckable(True)
         self.green_plane_box.setChecked(False)
-        self.green_plane_box.connect('clicked(bool)', self.greenPlaneCheckBoxClicked)
-
         self.radio_green_Neg= qt.QRadioButton("Keep Down Arrow")
         self.radio_green_Neg.setIcon(qt.QIcon(":/Icons/GreenSpaceNegative.png"))
         self.radio_green_Pos = qt.QRadioButton("Keep Top Arrow")
         self.radio_green_Pos.setIcon(qt.QIcon(":/Icons/GreenSpacePositive.png"))
+        self.green_plane_box.connect('clicked(bool)', lambda: self.logic.onCheckBoxClicked('Green',
+                                                                                           self.green_plane_box,
+                                                                                           self.radio_green_Neg))
         self.green_plane_box.connect('clicked(bool)', lambda: self.updateSliceState("vtkMRMLSliceNodeGreen",
                                                                                   self.green_plane_box.isChecked(),
                                                                                   self.radio_green_Neg.isChecked(),
@@ -272,15 +273,6 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
             lm = slicer.app.layoutManager()
             if lm.layout == 4:  # the user has not manually changed the layout
                 lm.setLayout(self.currentLayout)
-
-    def redPlaneCheckBoxClicked(self):
-        self.logic.onCheckBoxClicked('Red', self.red_plane_box, self.radio_red_Neg)
-
-    def yellowPlaneCheckBoxClicked(self):
-        self.logic.onCheckBoxClicked('Yellow', self.yellow_plane_box, self.radio_yellow_Neg)
-
-    def greenPlaneCheckBoxClicked(self):
-        self.logic.onCheckBoxClicked('Green', self.green_plane_box,  self.radio_green_Neg)
 
     def savePlane(self):
         self.logic.getCoord()
