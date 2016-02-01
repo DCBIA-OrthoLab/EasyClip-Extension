@@ -3,6 +3,7 @@ import numpy
 import pickle
 from slicer.ScriptedLoadableModule import *
 import os
+import json
 
 #
 # Load Files
@@ -50,6 +51,9 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.layout.addWidget(self.loadCollapsibleButton)
         self.ignoredNodeNames = ('Red Volume Slice', 'Yellow Volume Slice', 'Green Volume Slice')
         self.colorSliceVolumes = dict()
+        self.dictionnaryModel = dict()
+        self.hardenModelIDdict = dict()
+        self.landmarkDescriptionDict = dict()
 
         # Layout within the laplace collapsible button
         self.loadFormLayout = qt.QFormLayout(self.loadCollapsibleButton)
@@ -237,6 +241,7 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         slicer.mrmlScene.AddObserver(slicer.mrmlScene.EndCloseEvent, self.onCloseScene)
 
     def onCloseScene(self, obj, event):
+        self.colorSliceVolumes = dict()
         for key in self.logic.ColorNodeCorrespondence:
             self.logic.planeDict[self.logic.ColorNodeCorrespondence[key]] = self.logic.planeDef()
 
@@ -286,9 +291,20 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.logic.readPlaneFunction(self.red_plane_box, self.yellow_plane_box, self.green_plane_box)
 
     def UndoButtonClicked(self):
+        print "undo:"
+        print self.dictionnaryModel
         for key,value in self.dictionnaryModel.iteritems():
             model = slicer.mrmlScene.GetNodeByID(key)
             model.SetAndObservePolyData(value)
+        for key,value in self.hardenModelIDdict.iteritems():
+            fidList = slicer.mrmlScene.GetNodeByID(key)
+            fidList.SetAttribute("hardenModelID", value)
+        for key,value in self.modelIDdict.iteritems():
+            fidList = slicer.mrmlScene.GetNodeByID(key)
+            fidList.SetAttribute("connectedModelID", value)
+        for key,value in self.landmarkDescriptionDict.iteritems():
+            fidList = slicer.mrmlScene.GetNodeByID(key)
+            fidList.SetAttribute("landmarkDescription",value)
 
     def onComputeBox(self):
         #--------------------------- Box around the model --------------------------#
@@ -390,7 +406,8 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
 
     def ClippingButtonClicked(self):
         self.logic.getCoord()
-        self.dictionnaryModel = self.logic.clipping()
+        self.dictionnaryModel, self.modelIDdict, self.hardenModelIDdict, self.landmarkDescriptionDict\
+            = self.logic.clipping()
 
     def updateSliceState(self, plane, boxState, negState, posState):
         print "Update Slice State"
@@ -451,47 +468,87 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
         for key, planeDef in self.planeDict.iteritems():
             planeDef.matrix = self.getMatrix(slicer.util.getNode(key))
             planeDef.n = planeDef.matrix * self.get_normal
-            print "n : \n", planeDef.n
+            # print "n : \n", planeDef.n
             planeDef.P = planeDef.matrix * self.get_point
-            print "P : \n", planeDef.P
+
+            # print "P : \n", planeDef.P
             a = planeDef.n[0]
             b = planeDef.n[1]
             c = planeDef.n[2]
             d = planeDef.n[0]*planeDef.P[0] + planeDef.n[1]*planeDef.P[1] + planeDef.n[2]*planeDef.P[2]
-            print key + "plan equation : \n", a ,"* x + ", b , "* y + ", c , "* z - ", d ," = 0 "
+            # print key + "plan equation : \n", a ,"* x + ", b , "* y + ", c , "* z - ", d ," = 0 "
 
 
     def clipping(self):
-
-        self.planeCollection = vtk.vtkPlaneCollection()
-        for key, planeDef in self.planeDict.iteritems():
-            if planeDef.boxState:
-                planeDef.vtkPlane.SetOrigin(planeDef.P[0], planeDef.P[1], planeDef.P[2])
-                if planeDef.negState:
-                    planeDef.vtkPlane.SetNormal(-planeDef.n[0], -planeDef.n[1], -planeDef.n[2])
-                if planeDef.posState:
-                    planeDef.vtkPlane.SetNormal(planeDef.n[0], planeDef.n[1], planeDef.n[2])
-                self.planeCollection.AddItem(planeDef.vtkPlane)
-
+        planeCollection = vtk.vtkPlaneCollection()
+        harden = slicer.vtkSlicerTransformLogic()
+        tempTransform = slicer.vtkMRMLLinearTransformNode()
+        tempTransform.HideFromEditorsOn()
+        slicer.mrmlScene.AddNode(tempTransform)
         numNodes = slicer.mrmlScene.GetNumberOfNodesByClass("vtkMRMLModelNode")
-        self.dictionnaryModel = dict()
-        self.dictionnaryModel.clear()
+        dictionnaryModel = dict()
+        hardenModelIDdict = dict()
+        landmarkDescriptionDict = dict()
+        modelIDdict = dict()
         for i in range(3, numNodes):
+            planeCollection.RemoveAllItems()
             mh = slicer.mrmlScene.GetNthNodeByClass(i, "vtkMRMLModelNode")
-            self.model = slicer.util.getNode(mh.GetName())
-            self.dictionnaryModel[self.model.GetID()]=self.model.GetPolyData()
-            self.polyData = self.model.GetPolyData()
-            PolyAlgorithm = vtk.vtkClipClosedSurface()
-            PolyAlgorithm.SetInputData(self.polyData)
+            model = slicer.util.getNode(mh.GetName())
+            transform = model.GetParentTransformNode()
+            if transform:
+                tempTransform.Copy(transform)
+                harden.hardenTransform(tempTransform)
+                m = vtk.vtkMatrix4x4()
+                tempTransform.GetMatrixTransformToParent(m)
+                m.Invert(m, m)
+            else:
+                m = vtk.vtkMatrix4x4()
+            for key, planeDef in self.planeDict.iteritems():
+                hardenP = m.MultiplyPoint(planeDef.P)
+                hardenN = m.MultiplyPoint(planeDef.n)
+                if planeDef.boxState:
+                    planeDef.vtkPlane.SetOrigin(hardenP[0], hardenP[1], hardenP[2])
+                    if planeDef.negState:
+                        planeDef.vtkPlane.SetNormal(-hardenN[0], -hardenN[1], -hardenN[2])
+                    if planeDef.posState:
+                        planeDef.vtkPlane.SetNormal(hardenN[0], hardenN[1], hardenN[2])
+                    planeCollection.AddItem(planeDef.vtkPlane)
+            dictionnaryModel[model.GetID()]= model.GetPolyData()
+            polyData = model.GetPolyData()
             clipper = vtk.vtkClipClosedSurface()
-            clipper.SetClippingPlanes(self.planeCollection)
-            clipper.SetInputConnection(PolyAlgorithm.GetOutputPort())
+            clipper.SetClippingPlanes(planeCollection)
+            clipper.SetInputData(polyData)
             clipper.SetGenerateFaces(1)
             clipper.SetScalarModeToLabels()
             clipper.Update()
             polyDataNew = clipper.GetOutput()
-            self.model.SetAndObservePolyData(polyDataNew)
-        return self.dictionnaryModel
+            model.SetAndObservePolyData(polyDataNew)
+            # Checking if one ore more fiducial list are connected to this model
+            list = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsFiducialNode")
+            end = list.GetNumberOfItems()
+            for i in range(0,end):
+                fidList = list.GetItemAsObject(i)
+                if fidList.GetAttribute("connectedModelID"):
+                    if fidList.GetAttribute("connectedModelID") == model.GetID():
+                        modelIDdict[fidList.GetID()], hardenModelIDdict[fidList.GetID()], landmarkDescriptionDict[fidList.GetID()] = \
+                            self.unprojectLandmarks(fidList)
+        return dictionnaryModel, modelIDdict, hardenModelIDdict, landmarkDescriptionDict
+
+    def unprojectLandmarks(self, fidList):
+        hardenModelID = fidList.GetAttribute("hardenModelID")
+        ModelID = fidList.GetAttribute("connectedModelID")
+        landmarkDescriptioncopy = fidList.GetAttribute("landmarkDescription")
+        fidList.SetAttribute("connectedModelID", None)
+        fidList.SetAttribute("hardenModelID", None)
+        landmarkDescription = self.decodeJSON(fidList.GetAttribute("landmarkDescription"))
+        for n in range(fidList.GetNumberOfMarkups()):
+            markupID = fidList.GetNthMarkupID(n)
+            landmarkDescription[markupID]["projection"]["isProjected"] = False
+            landmarkDescription[markupID]["projection"]["closestPointIndex"] = None
+            landmarkDescription[markupID]["ROIradius"] = 0
+        fidList.SetAttribute("landmarkDescription",self.encodeJSON(landmarkDescription))
+        return ModelID, hardenModelID, landmarkDescriptioncopy
+
 
     def saveFunction(self):
         filename = qt.QFileDialog.getSaveFileName(parent=self,caption='Save file')
@@ -521,6 +578,25 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
                     for row in range(0, len(matList[col])):
                         matNode.SetElement(col, row, matList[col][row])
             fileObj.close()
+
+    def encodeJSON(self, input):
+        encodedString = json.dumps(input)
+        encodedString = encodedString.replace('\"', '\'')
+        return encodedString
+
+    def decodeJSON(self, input):
+        input = input.replace('\'','\"')
+        return self.byteify(json.loads(input))
+
+    def byteify(self, input):
+        if isinstance(input, dict):
+            return {self.byteify(key):self.byteify(value) for key,value in input.iteritems()}
+        elif isinstance(input, list):
+            return [self.byteify(element) for element in input]
+        elif isinstance(input, unicode):
+            return input.encode('utf-8')
+        else:
+            return input
 
 class EasyClipTest(ScriptedLoadableModuleTest):
     def setUp(self):
