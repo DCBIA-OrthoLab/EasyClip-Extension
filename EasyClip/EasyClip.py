@@ -39,57 +39,40 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
     def setup(self):
         ScriptedLoadableModuleWidget.setup(self)
         print "-------Setup---------"
-
-        self.planeControlsDictionary = {}
-        # Instantiate and connect widgets
-        #
-        # Interface
-        #
-        # Collapsible button -- Scene Description
-        self.loadCollapsibleButton = ctk.ctkCollapsibleButton()
-        self.loadCollapsibleButton.text = "Scene"
-        self.layout.addWidget(self.loadCollapsibleButton)
+                # GLOBALS:
+        self.logic = EasyClipLogic(self)
         self.ignoredNodeNames = ('Red Volume Slice', 'Yellow Volume Slice', 'Green Volume Slice')
         self.colorSliceVolumes = dict()
         self.dictionnaryModel = dict()
         self.hardenModelIDdict = dict()
         self.landmarkDescriptionDict = dict()
+        self.planeControlsDictionary = {}
+        # Instantiate and connect widgets
+        #
+        # Interface
+        #
+        loader = qt.QUiLoader()
+        moduleName = 'EasyClip'
+        scriptedModulesPath = eval('slicer.modules.%s.path' % moduleName.lower())
+        scriptedModulesPath = os.path.dirname(scriptedModulesPath)
+        path = os.path.join(scriptedModulesPath, 'Resources', 'UI', '%s.ui' %moduleName)
 
-        # Layout within the laplace collapsible button
-        self.loadFormLayout = qt.QFormLayout(self.loadCollapsibleButton)
-
-        # GLOBALS:
-        self.logic = EasyClipLogic()
-        #--------------------------- List of Models --------------------------#
-
-        treeView = slicer.qMRMLTreeView()
+        qfile = qt.QFile(path)
+        qfile.open(qt.QFile.ReadOnly)
+        widget = loader.load(qfile, self.parent)
+        self.layout = self.parent.layout()
+        self.widget = widget
+        self.layout.addWidget(widget)
+        ##--------------------------- Scene --------------------------#
+        treeView = self.logic.get("treeView")
         treeView.setMRMLScene(slicer.app.mrmlScene())
-        treeView.setSceneModelType('Displayable')
         treeView.sceneModel().setHorizontalHeaderLabels(["Models"])
         treeView.sortFilterProxyModel().nodeTypes = ['vtkMRMLModelNode']
-        header = treeView.header()
-        header.setResizeMode(0, qt.QHeaderView.Stretch)
-        header.setVisible(True)
-        self.loadFormLayout.addWidget(treeView)
-
-        self.autoChangeLayout = qt.QCheckBox()
-        self.autoChangeLayout.setCheckState(qt.Qt.Checked)
-        self.autoChangeLayout.setTristate(False)
-        self.autoChangeLayout.setText("Automatically change layout to 3D only")
-        self.loadFormLayout.addWidget(self.autoChangeLayout)
-        # Add vertical spacer
-        self.layout.addStretch(1)
-        #------------------------ Compute Bounding Box ----------------------#
-        buttonFrameBox = qt.QFrame(self.parent)
-        buttonFrameBox.setLayout(qt.QHBoxLayout())
-        self.loadFormLayout.addWidget(buttonFrameBox)
-
-        self.computeBox = qt.QPushButton("Compute Bounding Box around all models")
-        buttonFrameBox.layout().addWidget(self.computeBox)
+        treeView.header().setVisible(False)
+        self.autoChangeLayout = self.logic.get("autoChangeLayout")
+        self.computeBox = self.logic.get("computeBox")
         self.computeBox.connect('clicked()', self.onComputeBox)
-
         #--------------------------- Clipping Part --------------------------#
-
         # Collapsible button -- Clipping part
         self.loadCollapsibleButton = ctk.ctkCollapsibleButton()
         self.loadCollapsibleButton.text = "Clipping"
@@ -101,12 +84,10 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         #-------------------------- Buttons --------------------------#
         # CLIPPING BUTTONS
 
-        self.red_plane_box = qt.QGroupBox("Red Slice Clipping")
-        self.red_plane_box.setCheckable(True)
-        self.red_plane_box.setChecked(False)
-        self.radio_red_Neg = qt.QRadioButton("Keep Down Arrow")
+        self.red_plane_box = self.logic.get("red_plane_box")
+        self.radio_red_Neg = self.logic.get("radio_red_Neg")
         self.radio_red_Neg.setIcon(qt.QIcon(":/Icons/RedSpaceNegative.png"))
-        self.radio_red_Pos = qt.QRadioButton("Keep Top Arrow")
+        self.radio_red_Pos = self.logic.get("radio_red_Pos")
         self.radio_red_Pos.setIcon(qt.QIcon(":/Icons/RedSpacePositive.png"))
         self.red_plane_box.connect('clicked(bool)', lambda: self.logic.onCheckBoxClicked('Red',
                                                                                          self.red_plane_box,
@@ -123,20 +104,10 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
                                                                                   self.red_plane_box.isChecked(),
                                                                                   self.radio_red_Neg.isChecked(),
                                                                                   self.radio_red_Pos.isChecked()))
-
-
-        vbox = qt.QHBoxLayout()
-        vbox.addWidget(self.radio_red_Neg)
-        vbox.addWidget(self.radio_red_Pos)
-        vbox.addStretch(1)
-        self.red_plane_box.setLayout(vbox)
-        self.loadFormLayout.addWidget(self.red_plane_box)
-        self.yellow_plane_box = qt.QGroupBox("Yellow Slice Clipping")
-        self.yellow_plane_box.setCheckable(True)
-        self.yellow_plane_box.setChecked(False)
-        self.radio_yellow_Neg= qt.QRadioButton("Keep Down Arrow")
+        self.yellow_plane_box = self.logic.get("yellow_plane_box")
+        self.radio_yellow_Neg= self.logic.get("radio_yellow_Neg")
         self.radio_yellow_Neg.setIcon(qt.QIcon(":/Icons/YellowSpaceNegative.png"))
-        self.radio_yellow_Pos = qt.QRadioButton("Keep Top Arrow")
+        self.radio_yellow_Pos = self.logic.get("radio_yellow_Pos")
         self.radio_yellow_Pos.setIcon(qt.QIcon(":/Icons/YellowSpacePositive.png"))
         self.yellow_plane_box.connect('clicked(bool)', lambda: self.logic.onCheckBoxClicked('Yellow',
                                                                                             self.yellow_plane_box,
@@ -153,20 +124,10 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
                                                                                   self.yellow_plane_box.isChecked(),
                                                                                   self.radio_yellow_Neg.isChecked(),
                                                                                   self.radio_yellow_Pos.isChecked()))
-
-
-        vbox = qt.QHBoxLayout()
-        vbox.addWidget(self.radio_yellow_Neg)
-        vbox.addWidget(self.radio_yellow_Pos)
-        vbox.addStretch(1)
-        self.yellow_plane_box.setLayout(vbox)
-        self.loadFormLayout.addWidget(self.yellow_plane_box)
-        self.green_plane_box = qt.QGroupBox("Green Slice Clipping")
-        self.green_plane_box.setCheckable(True)
-        self.green_plane_box.setChecked(False)
-        self.radio_green_Neg= qt.QRadioButton("Keep Down Arrow")
+        self.green_plane_box = self.logic.get("green_plane_box")
+        self.radio_green_Neg= self.logic.get("radio_green_Neg")
         self.radio_green_Neg.setIcon(qt.QIcon(":/Icons/GreenSpaceNegative.png"))
-        self.radio_green_Pos = qt.QRadioButton("Keep Top Arrow")
+        self.radio_green_Pos = self.logic.get("radio_green_Pos")
         self.radio_green_Pos.setIcon(qt.QIcon(":/Icons/GreenSpacePositive.png"))
         self.green_plane_box.connect('clicked(bool)', lambda: self.logic.onCheckBoxClicked('Green',
                                                                                            self.green_plane_box,
@@ -183,60 +144,16 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
                                                                                   self.green_plane_box.isChecked(),
                                                                                   self.radio_green_Neg.isChecked(),
                                                                                   self.radio_green_Pos.isChecked()))
-
-
-        vbox = qt.QHBoxLayout()
-        vbox.addWidget(self.radio_green_Neg)
-        vbox.addWidget(self.radio_green_Pos)
-        vbox.addStretch(1)
-        self.green_plane_box.setLayout(vbox)
-        self.loadFormLayout.addWidget(self.green_plane_box)
-
-        buttonFrame = qt.QFrame(self.parent)
-        buttonFrame.setLayout(qt.QHBoxLayout())
-        self.loadFormLayout.addWidget(buttonFrame)
-
-        self.ClippingButton = qt.QPushButton("Clipping")
-        buttonFrame.layout().addWidget(self.ClippingButton)
+        self.ClippingButton = self.logic.get("ClippingButton")
         self.ClippingButton.connect('clicked()', self.ClippingButtonClicked)
-
-        self.UndoButton = qt.QPushButton("Undo")
-        buttonFrame.layout().addWidget(self.UndoButton)
+        self.UndoButton = self.logic.get("UndoButton")
         self.UndoButton.connect('clicked()', self.UndoButtonClicked)
-
-        #--------------------------- Advanced Part --------------------------#
-        #-------------------- Collapsible button -- Clipping part ----------------------#
-
-        self.loadCollapsibleButton = ctk.ctkCollapsibleButton()
-        self.loadCollapsibleButton.text = "Planes"
-        self.layout.addWidget(self.loadCollapsibleButton)
-
-        #-------------------- Layout within the laplace collapsible button ----------------------#
-        self.loadFormLayout = qt.QFormLayout(self.loadCollapsibleButton)
-
-        buttonFrame = qt.QFrame(self.parent)
-        buttonFrame.setLayout(qt.QVBoxLayout())
-        self.loadFormLayout.addWidget(buttonFrame)
-
-        #-------------------- SAVE PLANE BUTTON ----------------------#
-
-        save_plane = qt.QLabel("Save the planes you create as a txt file.")
-        buttonFrame.layout().addWidget(save_plane)
-        save = qt.QPushButton("Save plane")
-        buttonFrame.layout().addWidget(save)
-        save.connect('clicked(bool)', self.savePlane)
-
-        #-------------------- READ PLANE BUTTON ----------------------#
-
-        load_plane = qt.QLabel("Load the file with the plane you saved.")
-        buttonFrame.layout().addWidget(load_plane)
-        read = qt.QPushButton("Load plane")
-        buttonFrame.layout().addWidget(read)
-        read.connect('clicked(bool)', self.readPlane)
-
-        #-------------------- Add vertical spacer ----------------------#
-        self.layout.addStretch(1)
-
+        # -------------------------------- PLANES --------------------------------#
+        self.CollapsibleButton3 = self.logic.get("CollapsibleButton3")
+        self.save = self.logic.get("save")
+        self.read = self.logic.get("read")
+        self.save.connect('clicked(bool)', self.savePlane)
+        self.read.connect('clicked(bool)', self.readPlane)
         #-------------------- onCloseScene ----------------------#
         slicer.mrmlScene.AddObserver(slicer.mrmlScene.EndCloseEvent, self.onCloseScene)
 
@@ -438,7 +355,8 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
             # Plane for cliping
             self.vtkPlane = vtk.vtkPlane()
 
-    def __init__(self):
+    def __init__(self, interface):
+        self.interface = interface
         self.ColorNodeCorrespondence = {'Red': 'vtkMRMLSliceNodeRed',
                                         'Yellow': 'vtkMRMLSliceNodeYellow',
                                         'Green': 'vtkMRMLSliceNodeGreen'}
@@ -447,6 +365,19 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
         self.planeDict = dict()
         for key in self.ColorNodeCorrespondence:
             self.planeDict[self.ColorNodeCorrespondence[key]] = self.planeDef()
+
+    def get(self, objectName):
+        return self.findWidget(self.interface.widget, objectName)
+
+    def findWidget(self, widget, objectName):
+        if widget.objectName == objectName:
+            return widget
+        else:
+            for w in widget.children():
+                resulting_widget = self.findWidget(w, objectName)
+                if resulting_widget:
+                    return resulting_widget
+            return None
 
     def createIntermediateHardenModel(self, model):
         hardenModel = slicer.mrmlScene.GetNodesByName("SurfaceRegistration_" + model.GetName() + "_hardenCopy_" + str(
