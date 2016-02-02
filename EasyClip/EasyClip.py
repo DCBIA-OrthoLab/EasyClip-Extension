@@ -318,7 +318,8 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         bound = [maxValue, -maxValue, maxValue, -maxValue, maxValue, -maxValue]
         for i in positionOfVisibleNodes:
             node = slicer.mrmlScene.GetNthNodeByClass(i, "vtkMRMLModelNode")
-            polydata = node.GetPolyData()
+            model = self.logic.createIntermediateHardenModel(node)
+            polydata = model.GetPolyData()
             if polydata is None or not hasattr(polydata, "GetBounds"):
                 continue
             tempbound = polydata.GetBounds()
@@ -446,6 +447,24 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
         self.planeDict = dict()
         for key in self.ColorNodeCorrespondence:
             self.planeDict[self.ColorNodeCorrespondence[key]] = self.planeDef()
+
+    def createIntermediateHardenModel(self, model):
+        hardenModel = slicer.mrmlScene.GetNodesByName("SurfaceRegistration_" + model.GetName() + "_hardenCopy_" + str(
+            slicer.app.applicationPid())).GetItemAsObject(0)
+        if hardenModel is None:
+            hardenModel = slicer.vtkMRMLModelNode()
+        hardenPolyData = vtk.vtkPolyData()
+        hardenPolyData.DeepCopy(model.GetPolyData())
+        hardenModel.SetAndObservePolyData(hardenPolyData)
+        hardenModel.SetName(
+            "SurfaceRegistration_" + model.GetName() + "_hardenCopy_" + str(slicer.app.applicationPid()))
+        if model.GetParentTransformNode():
+            hardenModel.SetAndObserveTransformNodeID(model.GetParentTransformNode().GetID())
+        hardenModel.HideFromEditorsOn()
+        slicer.mrmlScene.AddNode(hardenModel)
+        logic = slicer.vtkSlicerTransformLogic()
+        logic.hardenTransform(hardenModel)
+        return hardenModel
 
     def onCheckBoxClicked(self, colorPlane, checkBox, radioButton ):
         slice = slicer.util.getNode(self.ColorNodeCorrespondence[colorPlane])
@@ -585,8 +604,10 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
         return encodedString
 
     def decodeJSON(self, input):
-        input = input.replace('\'','\"')
-        return self.byteify(json.loads(input))
+        if input:
+            input = input.replace('\'','\"')
+            return self.byteify(json.loads(input))
+        return None
 
     def byteify(self, input):
         if isinstance(input, dict):
