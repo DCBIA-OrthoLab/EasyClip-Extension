@@ -73,15 +73,6 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.computeBox = self.logic.get("computeBox")
         self.computeBox.connect('clicked()', self.onComputeBox)
         #--------------------------- Clipping Part --------------------------#
-        # Collapsible button -- Clipping part
-        self.loadCollapsibleButton = ctk.ctkCollapsibleButton()
-        self.loadCollapsibleButton.text = "Clipping"
-        self.layout.addWidget(self.loadCollapsibleButton)
-
-        # Layout within the laplace collapsible button
-        self.loadFormLayout = qt.QFormLayout(self.loadCollapsibleButton)
-
-        #-------------------------- Buttons --------------------------#
         # CLIPPING BUTTONS
 
         self.red_plane_box = self.logic.get("red_plane_box")
