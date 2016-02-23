@@ -438,6 +438,8 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
         for i in range(3, numNodes):
             planeCollection.RemoveAllItems()
             mh = slicer.mrmlScene.GetNthNodeByClass(i, "vtkMRMLModelNode")
+            if mh.GetDisplayVisibility() == 0:
+                continue
             model = slicer.util.getNode(mh.GetName())
             transform = model.GetParentTransformNode()
             if transform:
