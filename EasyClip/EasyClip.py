@@ -153,6 +153,7 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.colorSliceVolumes = dict()
         for key in self.logic.ColorNodeCorrespondence:
             self.logic.planeDict[self.logic.ColorNodeCorrespondence[key]] = self.logic.planeDef()
+        self.UndoButton.enabled = False
 
 
     def enter(self):
@@ -202,6 +203,7 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
     def UndoButtonClicked(self):
         print "undo:"
         print self.dictionnaryModel
+        self.UndoButton.enabled = False
         for key,value in self.dictionnaryModel.iteritems():
             model = slicer.mrmlScene.GetNodeByID(key)
             model.SetAndObservePolyData(value)
@@ -319,6 +321,7 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.logic.getCoord()
         self.dictionnaryModel, self.modelIDdict, self.hardenModelIDdict, self.landmarkDescriptionDict\
             = self.logic.clipping()
+        self.UndoButton.enabled = True
 
     def updateSliceState(self, plane, boxState, negState, posState):
         print "Update Slice State"

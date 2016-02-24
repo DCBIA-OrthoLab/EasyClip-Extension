@@ -158,16 +158,19 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
-         <widget class="QPushButton" name="ClippingButton">
+         <widget class="QPushButton" name="UndoButton">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
           <property name="text">
-           <string>Clipping</string>
+           <string>Undo</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="UndoButton">
+         <widget class="QPushButton" name="ClippingButton">
           <property name="text">
-           <string>Undo</string>
+           <string>Clipping</string>
           </property>
          </widget>
         </item>
