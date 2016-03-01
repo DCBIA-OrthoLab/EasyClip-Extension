@@ -166,6 +166,19 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
             if planeControls.PlaneIsDefined():
                 planeControls.logic.planeLandmarks(planeControls.landmark1ComboBox.currentIndex, planeControls.landmark2ComboBox.currentIndex,
                                           planeControls.landmark3ComboBox.currentIndex, planeControls.slider.value, planeControls.slideOpacity.value)
+
+        # Checking the names of the fiducials
+        list = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsFiducialNode")
+        end = list.GetNumberOfItems()
+        for i in range(0,end):
+            fidList = list.GetItemAsObject(i)
+            landmarkDescription = self.logic.decodeJSON(fidList.GetAttribute("landmarkDescription"))
+            if landmarkDescription:
+                for n in range(fidList.GetNumberOfMarkups()):
+                    markupID = fidList.GetNthMarkupID(n)
+                    markupLabel = fidList.GetNthMarkupLabel(n)
+                    landmarkDescription[markupID]["landmarkLabel"] = markupLabel
+                fidList.SetAttribute("landmarkDescription",self.logic.encodeJSON(landmarkDescription))
         self.onComputeBox()
 
     def exit(self):
