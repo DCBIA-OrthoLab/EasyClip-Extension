@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>521</width>
+    <width>477</width>
     <height>768</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
@@ -21,7 +21,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="ctkCollapsibleButton" name="loadCollapsibleButton">
+    <widget class="ctkCollapsibleButton" name="SceneCollapsibleButton">
      <property name="text">
       <string>Scene:</string>
      </property>
@@ -62,7 +62,7 @@
    <item>
     <widget class="ctkCollapsibleButton" name="CollapsibleButton">
      <property name="text">
-      <string>clipping</string>
+      <string>Clipping</string>
      </property>
      <property name="contentsFrameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -158,16 +158,19 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
-         <widget class="QPushButton" name="ClippingButton">
+         <widget class="QPushButton" name="UndoButton">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
           <property name="text">
-           <string>Clipping</string>
+           <string>Undo</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="UndoButton">
+         <widget class="QPushButton" name="ClippingButton">
           <property name="text">
-           <string>Undo</string>
+           <string>Clipping</string>
           </property>
          </widget>
         </item>

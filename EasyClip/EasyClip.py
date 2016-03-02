@@ -38,7 +38,7 @@ class EasyClip(ScriptedLoadableModule):
 class EasyClipWidget(ScriptedLoadableModuleWidget):
     def setup(self):
         ScriptedLoadableModuleWidget.setup(self)
-        print "-------Setup---------"
+        print "-------Easy Clip Widget Setup---------"
         # GLOBALS:
         self.logic = EasyClipLogic(self)
         self.ignoredNodeNames = ('Red Volume Slice', 'Yellow Volume Slice', 'Green Volume Slice')
@@ -64,6 +64,7 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.widget = widget
         self.layout.addWidget(widget)
         ##--------------------------- Scene --------------------------#
+        self.SceneCollapsibleButton = self.logic.get("SceneCollapsibleButton") # this atribute is usefull for Longitudinal quantification extension
         treeView = self.logic.get("treeView")
         treeView.setMRMLScene(slicer.app.mrmlScene())
         treeView.sceneModel().setHorizontalHeaderLabels(["Models"])
@@ -73,15 +74,6 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.computeBox = self.logic.get("computeBox")
         self.computeBox.connect('clicked()', self.onComputeBox)
         #--------------------------- Clipping Part --------------------------#
-        # Collapsible button -- Clipping part
-        self.loadCollapsibleButton = ctk.ctkCollapsibleButton()
-        self.loadCollapsibleButton.text = "Clipping"
-        self.layout.addWidget(self.loadCollapsibleButton)
-
-        # Layout within the laplace collapsible button
-        self.loadFormLayout = qt.QFormLayout(self.loadCollapsibleButton)
-
-        #-------------------------- Buttons --------------------------#
         # CLIPPING BUTTONS
 
         self.red_plane_box = self.logic.get("red_plane_box")
@@ -161,6 +153,7 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.colorSliceVolumes = dict()
         for key in self.logic.ColorNodeCorrespondence:
             self.logic.planeDict[self.logic.ColorNodeCorrespondence[key]] = self.logic.planeDef()
+        self.UndoButton.enabled = False
 
 
     def enter(self):
@@ -173,6 +166,19 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
             if planeControls.PlaneIsDefined():
                 planeControls.logic.planeLandmarks(planeControls.landmark1ComboBox.currentIndex, planeControls.landmark2ComboBox.currentIndex,
                                           planeControls.landmark3ComboBox.currentIndex, planeControls.slider.value, planeControls.slideOpacity.value)
+
+        # Checking the names of the fiducials
+        list = slicer.mrmlScene.GetNodesByClass("vtkMRMLMarkupsFiducialNode")
+        end = list.GetNumberOfItems()
+        for i in range(0,end):
+            fidList = list.GetItemAsObject(i)
+            landmarkDescription = self.logic.decodeJSON(fidList.GetAttribute("landmarkDescription"))
+            if landmarkDescription:
+                for n in range(fidList.GetNumberOfMarkups()):
+                    markupID = fidList.GetNthMarkupID(n)
+                    markupLabel = fidList.GetNthMarkupLabel(n)
+                    landmarkDescription[markupID]["landmarkLabel"] = markupLabel
+                fidList.SetAttribute("landmarkDescription",self.logic.encodeJSON(landmarkDescription))
         self.onComputeBox()
 
     def exit(self):
@@ -210,6 +216,7 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
     def UndoButtonClicked(self):
         print "undo:"
         print self.dictionnaryModel
+        self.UndoButton.enabled = False
         for key,value in self.dictionnaryModel.iteritems():
             model = slicer.mrmlScene.GetNodeByID(key)
             model.SetAndObservePolyData(value)
@@ -327,6 +334,7 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.logic.getCoord()
         self.dictionnaryModel, self.modelIDdict, self.hardenModelIDdict, self.landmarkDescriptionDict\
             = self.logic.clipping()
+        self.UndoButton.enabled = True
 
     def updateSliceState(self, plane, boxState, negState, posState):
         print "Update Slice State"
@@ -446,6 +454,8 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
         for i in range(3, numNodes):
             planeCollection.RemoveAllItems()
             mh = slicer.mrmlScene.GetNthNodeByClass(i, "vtkMRMLModelNode")
+            if mh.GetDisplayVisibility() == 0:
+                continue
             model = slicer.util.getNode(mh.GetName())
             transform = model.GetParentTransformNode()
             if transform:
