@@ -181,6 +181,10 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
                 fidList.SetAttribute("landmarkDescription",self.logic.encodeJSON(landmarkDescription))
         self.onComputeBox()
 
+        self.logic.onCheckBoxClicked('Red', self.red_plane_box, self.radio_red_Neg)
+        self.logic.onCheckBoxClicked('Green', self.green_plane_box, self.radio_green_Neg)
+        self.logic.onCheckBoxClicked('Yellow', self.yellow_plane_box, self.radio_yellow_Neg)
+
     def exit(self):
         # Remove hidden nodes that are created just for Angle Planes
         for x in self.colorSliceVolumes.values():
@@ -637,12 +641,9 @@ class EasyClipTest(ScriptedLoadableModuleTest):
 
         self.delayDisplay('planes are placed!')
 
-        logic = EasyClipLogic()
+        logic = EasyClipLogic(slicer.modules.EasyClipWidget)
         logic.getCoord()
-        logic.clipping(True, False, True, False, False, False, False, False, False)
-
-
-        print 'DONE'
+        logic.clipping()
 
         self.delayDisplay('Test passed!')
 
