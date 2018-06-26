@@ -215,7 +215,8 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.logic.saveFunction()
 
     def readPlane(self):
-        self.logic.readPlaneFunction(self.red_plane_box, self.yellow_plane_box, self.green_plane_box)
+        # Load plane matrix/function
+        self.logic.readPlaneFunction()
 
     def UndoButtonClicked(self):
         print "undo:"
@@ -518,22 +519,22 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
 
 
     def saveFunction(self):
-        filename = qt.QFileDialog.getSaveFileName(self, 'Save file')
+        filename = qt.QFileDialog.getSaveFileName(self.interface.parent, "Save file")
         tempDictionary = {}
         for key in self.ColorNodeCorrespondence:
             slice = slicer.util.getNode(self.ColorNodeCorrespondence[key])
             tempDictionary[key] = self.getMatrix(slice).tolist()
         if filename is None:
-            filename = qt.QFileDialog.getSaveFileName(self, 'Save file')
+            filename = qt.QFileDialog.getSaveFileName(self.interface.parent, "Save file")
         if filename != "":
             fileObj = open(filename, "wb")
             pickle.dump(tempDictionary, fileObj)
             fileObj.close()
 
-    def readPlaneFunction(self, red_plane_box, yellow_plane_box, green_plane_box):
-        filename = qt.QFileDialog.getOpenFileName(self, 'Open file')
+    def readPlaneFunction(self):
+        filename = qt.QFileDialog.getOpenFileName(self.interface.parent, "Open file")
         if filename is None:
-            filename = qt.QFileDialog.getOpenFileName(self, 'Open file')
+            filename = qt.QFileDialog.getOpenFileName(self.interface.parent, "Open file")
         if filename != "":
             fileObj = open(filename, "rb")
             tempDictionary = pickle.load(fileObj)
@@ -544,6 +545,7 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
                 for col in range(0, len(matList)):
                     for row in range(0, len(matList[col])):
                         matNode.SetElement(col, row, matList[col][row])
+                node.UpdateMatrices()
             fileObj.close()
 
     def encodeJSON(self, input):
