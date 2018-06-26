@@ -518,22 +518,22 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
 
 
     def saveFunction(self):
-        filename = qt.QFileDialog.getSaveFileName(parent=self,caption='Save file')
+        filename = qt.QFileDialog.getSaveFileName(self, 'Save file')
         tempDictionary = {}
         for key in self.ColorNodeCorrespondence:
             slice = slicer.util.getNode(self.ColorNodeCorrespondence[key])
             tempDictionary[key] = self.getMatrix(slice).tolist()
         if filename is None:
-            filename = qt.QFileDialog.getSaveFileName(parent=self, caption='Save file')
+            filename = qt.QFileDialog.getSaveFileName(self, 'Save file')
         if filename != "":
             fileObj = open(filename, "wb")
             pickle.dump(tempDictionary, fileObj)
             fileObj.close()
 
     def readPlaneFunction(self, red_plane_box, yellow_plane_box, green_plane_box):
-        filename = qt.QFileDialog.getOpenFileName(parent=self,caption='Open file')
+        filename = qt.QFileDialog.getOpenFileName(self, 'Open file')
         if filename is None:
-            filename = qt.QFileDialog.getOpenFileName(parent=self, caption='Open file')
+            filename = qt.QFileDialog.getOpenFileName(self, 'Open file')
         if filename != "":
             fileObj = open(filename, "rb")
             tempDictionary = pickle.load(fileObj)
