@@ -38,7 +38,7 @@ class EasyClip(ScriptedLoadableModule):
 class EasyClipWidget(ScriptedLoadableModuleWidget):
     def setup(self):
         ScriptedLoadableModuleWidget.setup(self)
-        print "-------Easy Clip Widget Setup---------"
+        print("-------Easy Clip Widget Setup---------")
         # GLOBALS:
         self.logic = EasyClipLogic(self)
         self.ignoredNodeNames = ('Red Volume Slice', 'Yellow Volume Slice', 'Green Volume Slice')
@@ -219,19 +219,19 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.logic.readPlaneFunction()
 
     def UndoButtonClicked(self):
-        print "undo:"
-        print self.dictionnaryModel
+        print("undo:")
+        print(self.dictionnaryModel)
         self.UndoButton.enabled = False
-        for key,value in self.dictionnaryModel.iteritems():
+        for key,value in self.dictionnaryModel.items():
             model = slicer.mrmlScene.GetNodeByID(key)
             model.SetAndObservePolyData(value)
-        for key,value in self.hardenModelIDdict.iteritems():
+        for key,value in self.hardenModelIDdict.items():
             fidList = slicer.mrmlScene.GetNodeByID(key)
             fidList.SetAttribute("hardenModelID", value)
-        for key,value in self.modelIDdict.iteritems():
+        for key,value in self.modelIDdict.items():
             fidList = slicer.mrmlScene.GetNodeByID(key)
             fidList.SetAttribute("connectedModelID", value)
-        for key,value in self.landmarkDescriptionDict.iteritems():
+        for key,value in self.landmarkDescriptionDict.items():
             fidList = slicer.mrmlScene.GetNodeByID(key)
             fidList.SetAttribute("landmarkDescription",value)
 
@@ -342,7 +342,7 @@ class EasyClipWidget(ScriptedLoadableModuleWidget):
         self.UndoButton.enabled = True
 
     def updateSliceState(self, plane, boxState, negState, posState):
-        print "Update Slice State"
+        print("Update Slice State")
         self.logic.planeDict[plane].boxState = boxState
         self.logic.planeDict[plane].negState = negState
         self.logic.planeDict[plane].posState = posState
@@ -415,7 +415,7 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
 
     def onCheckBoxClicked(self, colorPlane, checkBox, radioButton ):
         slice = slicer.util.getNode(self.ColorNodeCorrespondence[colorPlane])
-        print "Slice test", slice
+        print("Slice test", slice)
         if checkBox.isChecked():
             slice.SetWidgetVisible(True)
             radioButton.setChecked(True)
@@ -431,7 +431,7 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
         return m
 
     def getCoord(self):
-        for key, planeDef in self.planeDict.iteritems():
+        for key, planeDef in self.planeDict.items():
             planeDef.matrix = self.getMatrix(slicer.util.getNode(key))
             planeDef.n = planeDef.matrix * self.get_normal
             # print "n : \n", planeDef.n
@@ -471,7 +471,7 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
                 m.Invert(m, m)
             else:
                 m = vtk.vtkMatrix4x4()
-            for key, planeDef in self.planeDict.iteritems():
+            for key, planeDef in self.planeDict.items():
                 hardenP = m.MultiplyPoint(planeDef.P)
                 hardenN = m.MultiplyPoint(planeDef.n)
                 if planeDef.boxState:
@@ -561,7 +561,7 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
 
     def byteify(self, input):
         if isinstance(input, dict):
-            return {self.byteify(key):self.byteify(value) for key,value in input.iteritems()}
+            return {self.byteify(key):self.byteify(value) for key,value in input.items()}
         elif isinstance(input, list):
             return [self.byteify(element) for element in input]
         elif isinstance(input, unicode):
@@ -625,20 +625,20 @@ class EasyClipTest(ScriptedLoadableModuleTest):
         matRed.SetElement(1,3,0)
         matRed.SetElement(2,3,8)
         redslice.SetWidgetVisible(True)
-        print matRed
+        print(matRed)
 
         matYellow = yellowslice.GetSliceToRAS()
         matYellow.SetElement(0,3,-3)
         matYellow.SetElement(1,3,0)
         matYellow.SetElement(2,3,0)
-        print matYellow
+        print(matYellow)
         yellowslice.SetWidgetVisible(True)
 
         matGreen = greenslice.GetSliceToRAS()
         matGreen.SetElement(0,3,0)
         matGreen.SetElement(1,3,-9)
         matGreen.SetElement(2,3,0)
-        print matGreen
+        print(matGreen)
         greenslice.SetWidgetVisible(True)
 
         self.delayDisplay('planes are placed!')
