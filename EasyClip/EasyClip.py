@@ -585,7 +585,7 @@ class EasyClipTest(ScriptedLoadableModuleTest):
         ###################################################################################################
         #                                        Loading some data                                        #
         ###################################################################################################
-        import urllib
+        import urllib.request
         downloads = (
             ('http://slicer.kitware.com/midas3/download?items=167065', 'model.vtk', slicer.util.loadModel),
             )
@@ -594,7 +594,7 @@ class EasyClipTest(ScriptedLoadableModuleTest):
           filePath = slicer.app.temporaryPath + '/' + name
           if not os.path.exists(filePath) or os.stat(filePath).st_size == 0:
             print('Requesting download %s from %s...\n' % (name, url))
-            urllib.urlretrieve(url, filePath)
+            urllib.request.urlretrieve(url, filePath)
           if loader:
             print('Loading %s...\n' % (name,))
             loader(filePath)
