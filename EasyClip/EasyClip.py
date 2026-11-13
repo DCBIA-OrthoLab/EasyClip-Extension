@@ -472,8 +472,9 @@ class EasyClipLogic(ScriptedLoadableModuleLogic):
             else:
                 m = vtk.vtkMatrix4x4()
             for key, planeDef in self.planeDict.items():
-                hardenP = m.MultiplyPoint(planeDef.P)
-                hardenN = m.MultiplyPoint(planeDef.n)
+                # vtkMatrix4x4.MultiplyPoint no longer accepts a numpy.matrix: pass plain floats
+                hardenP = m.MultiplyPoint([float(x) for x in planeDef.P.flat])
+                hardenN = m.MultiplyPoint([float(x) for x in planeDef.n.flat])
                 if planeDef.boxState:
                     planeDef.vtkPlane.SetOrigin(hardenP[0], hardenP[1], hardenP[2])
                     if planeDef.negState:
